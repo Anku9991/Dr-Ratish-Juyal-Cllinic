@@ -51,9 +51,10 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             ["Patient", `${user.fullName} (${patient?.patient_code ?? ""})`],
             ["Appointment", `${a.appointment_number} with ${doctorNameOf(a)}`],
             ["Consultation date", formatInstant(a.starts_at, settings.timezone)],
-            ["Payment method", paid.method ? paid.method.toUpperCase() : "Online"],
-            ["Razorpay payment ID", paid.razorpay_payment_id],
-            ["Amount paid", <span key="amt" className="text-base">{formatINR(paid.amount)}</span>],
+            ["Payment method", paid.failure_reason === "Pay at Clinic Counter (Cash)" ? "Cash (Pay at Clinic Counter)" : (paid.method ? paid.method.toUpperCase() : "Online (Razorpay)")],
+            ["Payment status", paid.status === "captured" ? "Paid in Full" : "Pending Cash Collection at Reception Counter"],
+            ["Razorpay payment ID", paid.razorpay_payment_id || "-"],
+            ["Amount", <span key="amt" className="text-base font-bold text-ink">{formatINR(paid.amount)}</span>],
             ["Refunded", paid.refunded_amount ? formatINR(paid.refunded_amount) : "-"],
           ]}
         />

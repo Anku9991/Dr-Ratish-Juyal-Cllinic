@@ -9,27 +9,43 @@ import { RefundForm } from "@/components/client/RefundForm";
 
 export const metadata: Metadata = { title: "Payments" };
 
+import { clinicStore } from "@/lib/appointments-store";
+
 export default async function AdminPaymentsPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const { filter } = await searchParams;
   await requirePageRole("admin");
   const settings = await getClinicSettings();
-  let q = supabaseAdmin()
-    .from("payments")
-    .select("id, receipt_number, amount, status, refunded_amount, refund_required, created_at, verified_at, appointments!inner(appointment_number, patients!inner(patient_code, profiles!inner(full_name))))")
-    .order("created_at", { ascending: false })
-    .limit(100);
-  if (filter === "refund_due") q = q.eq("refund_required", true);
-  const { data } = await q;
-  const rows = (data ?? []) as unknown as Array<{
-    id: string;
-    receipt_number: string;
-    amount: number;
-    status: string;
-    refunded_amount: number;
-    refund_required: boolean;
-    created_at: string;
-    appointments: { appointment_number: string; patients: { patient_code: string; profiles: { full_name: string } } };
-  }>;
+
+  const localRows = clinicStore.listAll().map((a) => ({
+    id: `pay-${a.id}`,
+    receipt_number: a.receipt_number,
+    amount: a.consultation_fee * 100, // paise
+    status: a.payment_status === "captured" ? "captured" : "created",
+    refunded_amount: 0,
+    refund_required: false,
+    created_at: a.created_at,
+    payment_method: a.payment_method,
+    appointments: {
+      appointment_number: `${a.appointment_number} (${a.payment_method === "cash" ? "Cash Counter" : a.payment_method === "card" ? "Card/POS" : "Razorpay"})`,
+      patients: { patient_code: a.patient_code, profiles: { full_name: a.patient_name } },
+    },
+  }));
+
+  let dbRows: typeof localRows = [];
+  try {
+    let q = supabaseAdmin()
+      .from("payments")
+      .select("id, receipt_number, amount, status, refunded_amount, refund_required, created_at, verified_at, appointments!inner(appointment_number, patients!inner(patient_code, profiles!inner(full_name))))")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (filter === "refund_due") q = q.eq("refund_required", true);
+    const { data } = await q;
+    if (data) dbRows = data as unknown as typeof localRows;
+  } catch {
+    // offline fallback
+  }
+
+  const rows = [...localRows, ...dbRows];
 
   return (
     <div>

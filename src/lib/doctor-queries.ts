@@ -23,18 +23,25 @@ export function patientNameOf(a: { patients: DoctorAppointmentRow["patients"] })
 
 const LIVE: AppointmentStatus[] = ["confirmed", "checked_in", "in_consultation", "completed", "no_show"];
 
+import { clinicStore, toDoctorAppointmentRow } from "./appointments-store";
+
 export async function listTodayAppointments(doctorId: string, date: string): Promise<DoctorAppointmentRow[]> {
-  if (!isSupabaseConfigured()) return [];
+  const local = clinicStore.listForDoctor(doctorId, date).map(toDoctorAppointmentRow);
+  if (!isSupabaseConfigured()) return local;
+
   try {
     const { data } = await supabaseAdmin().from("appointments").select(SELECT).eq("doctor_id", doctorId).eq("appointment_date", date).in("status", LIVE).order("start_time");
-    return (data ?? []) as unknown as DoctorAppointmentRow[];
+    const dbAppts = (data ?? []) as unknown as DoctorAppointmentRow[];
+    return [...local, ...dbAppts];
   } catch {
-    return [];
+    return local;
   }
 }
 
 export async function listUpcomingAppointments(doctorId: string, fromDate: string): Promise<DoctorAppointmentRow[]> {
-  if (!isSupabaseConfigured()) return [];
+  const local = clinicStore.listForDoctor(doctorId).filter((a) => a.appointment_date >= fromDate).map(toDoctorAppointmentRow);
+  if (!isSupabaseConfigured()) return local;
+
   try {
     const { data } = await supabaseAdmin()
       .from("appointments")
@@ -44,13 +51,19 @@ export async function listUpcomingAppointments(doctorId: string, fromDate: strin
       .gte("appointment_date", fromDate)
       .order("starts_at")
       .limit(100);
-    return (data ?? []) as unknown as DoctorAppointmentRow[];
+    const dbAppts = (data ?? []) as unknown as DoctorAppointmentRow[];
+    return [...local, ...dbAppts];
   } catch {
-    return [];
+    return local;
   }
 }
 
 export async function getDoctorAppointment(doctorId: string, appointmentId: string): Promise<DoctorAppointmentRow | null> {
+  const local = clinicStore.getById(appointmentId);
+  if (local && local.doctor_id === doctorId) {
+    return toDoctorAppointmentRow(local);
+  }
+
   if (!isSupabaseConfigured()) return null;
   try {
     const { data } = await supabaseAdmin().from("appointments").select(SELECT).eq("id", appointmentId).eq("doctor_id", doctorId).maybeSingle();

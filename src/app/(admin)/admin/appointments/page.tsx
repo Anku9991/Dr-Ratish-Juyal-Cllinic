@@ -10,27 +10,39 @@ import type { AppointmentStatus } from "@/lib/status";
 export const metadata: Metadata = { title: "Appointments" };
 const STATUSES: AppointmentStatus[] = ["pending_payment", "confirmed", "checked_in", "in_consultation", "completed", "cancelled", "no_show", "expired"];
 
+import { clinicStore } from "@/lib/appointments-store";
+
 export default async function AdminAppointmentsPage({ searchParams }: { searchParams: Promise<{ status?: string; date?: string }> }) {
   const { status, date } = await searchParams;
   await requirePageRole("admin");
   const settings = await getClinicSettings();
   const today = dateInTz(new Date(), settings.timezone);
   const filterDate = date ?? today;
-  let q = supabaseAdmin()
-    .from("appointments")
-    .select("id, appointment_number, starts_at, status, appointment_date, doctors!inner(profiles!inner(full_name)), patients!inner(patient_code, profiles!inner(full_name))")
-    .eq("appointment_date", filterDate)
-    .order("starts_at");
-  if (status && STATUSES.includes(status as AppointmentStatus)) q = q.eq("status", status);
-  const { data } = await q;
-  const rows = (data ?? []) as unknown as Array<{
-    id: string;
-    appointment_number: string;
-    starts_at: string;
-    status: AppointmentStatus;
-    doctors: { profiles: { full_name: string } };
-    patients: { patient_code: string; profiles: { full_name: string } };
-  }>;
+
+  const localRows = clinicStore.listAll(filterDate, status).map((a) => ({
+    id: a.id,
+    appointment_number: a.appointment_number,
+    starts_at: a.starts_at,
+    status: a.status,
+    doctors: { profiles: { full_name: a.doctor_name } },
+    patients: { patient_code: a.patient_code, profiles: { full_name: a.patient_name } },
+  }));
+
+  let dbRows: typeof localRows = [];
+  try {
+    let q = supabaseAdmin()
+      .from("appointments")
+      .select("id, appointment_number, starts_at, status, appointment_date, doctors!inner(profiles!inner(full_name)), patients!inner(patient_code, profiles!inner(full_name))")
+      .eq("appointment_date", filterDate)
+      .order("starts_at");
+    if (status && STATUSES.includes(status as AppointmentStatus)) q = q.eq("status", status);
+    const { data } = await q;
+    if (data) dbRows = data as unknown as typeof localRows;
+  } catch {
+    // offline fallback
+  }
+
+  const rows = [...localRows, ...dbRows];
 
   return (
     <div>
