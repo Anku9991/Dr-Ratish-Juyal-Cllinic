@@ -1,10 +1,16 @@
 import { getPublicClinic, clinicDisplayName, listPublicDoctors } from "@/lib/clinic";
 import { DoctorCard } from "@/components/DoctorCard";
 import { LinkButton, EmptyState } from "@/components/ui";
-import { Clock, FileSignature, MapPin, Phone, Brain, Activity } from "lucide-react";
+import { Clock, FileSignature, MapPin, Phone, Brain, Activity, Video } from "lucide-react";
+import { listClinicVideos } from "@/lib/firebase/videos";
+import { ClinicVideosSection } from "@/components/client/ClinicVideosSection";
 
 export default async function Home() {
-  const [clinic, doctors] = await Promise.all([getPublicClinic(), listPublicDoctors()]);
+  const [clinic, doctors, videos] = await Promise.all([
+    getPublicClinic(),
+    listPublicDoctors(),
+    listClinicVideos(),
+  ]);
 
   return (
     <div className="space-y-12">
@@ -116,6 +122,24 @@ export default async function Home() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Clinic & Doctor Videos Section */}
+      <section aria-labelledby="videos" className="rounded-2xl border border-line bg-gradient-to-br from-white via-slate-50/50 to-purple-50/20 p-6 sm:p-8">
+        <div className="mb-6">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-3 py-0.5 text-xs font-semibold text-purple-700 mb-2">
+            <Video className="h-3.5 w-3.5" />
+            <span>Doctor Videos & Clinical Guidance</span>
+          </div>
+          <h2 id="videos" className="text-2xl font-bold tracking-tight text-ink">
+            Doctor Insights & Patient Guidance Videos
+          </h2>
+          <p className="text-sm text-muted mt-1 max-w-2xl">
+            Watch Dr. Ratish Juyal and our Neuro-Physiotherapist explain brain, spine, stroke emergency care, and rehabilitation exercises.
+          </p>
+        </div>
+
+        <ClinicVideosSection initialVideos={videos} />
       </section>
 
       {/* Clinical Departments & Specialities */}

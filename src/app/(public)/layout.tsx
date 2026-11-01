@@ -18,6 +18,9 @@ export default async function PublicLayout({ children }: { children: ReactNode }
             <Link href="/doctors" className="rounded-lg px-3 py-2 hover:bg-slate-100">
               Doctors
             </Link>
+            <Link href="/videos" className="rounded-lg px-3 py-2 hover:bg-slate-100 font-medium text-purple-700">
+              Videos
+            </Link>
             <Link href="/contact" className="rounded-lg px-3 py-2 hover:bg-slate-100">
               Contact
             </Link>

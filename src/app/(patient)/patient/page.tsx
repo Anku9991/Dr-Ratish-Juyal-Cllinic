@@ -12,11 +12,19 @@ export const metadata: Metadata = { title: "Dashboard" };
 export default async function PatientDashboard() {
   const user = await requirePageRole("patient");
   const patientId = await requirePatientId(user);
-  const [appts, settings, { data: patient }] = await Promise.all([
+  const [appts, settings] = await Promise.all([
     listPatientAppointments(patientId),
     getClinicSettings(),
-    supabaseAdmin().from("patients").select("patient_code, date_of_birth, gender").eq("id", patientId).single(),
   ]);
+
+  let patient: { patient_code?: string; date_of_birth?: string | null; gender?: string | null } | null = null;
+  try {
+    const res = await supabaseAdmin().from("patients").select("patient_code, date_of_birth, gender").eq("id", patientId).maybeSingle();
+    patient = res.data;
+  } catch {
+    patient = null;
+  }
+
   const now = Date.now();
   const upcoming = appts
     .filter((a) => ["confirmed", "checked_in", "in_consultation", "pending_payment"].includes(a.status) && new Date(a.ends_at).getTime() > now)

@@ -11,9 +11,9 @@ export default async function RegisterPage() {
   const user = await getSessionUser();
   if (user) redirect(ROLE_HOME[user.role]);
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="mb-1 text-2xl font-semibold">Create your patient account</h1>
-      <p className="mb-5 text-sm text-muted">Book appointments, pay online and keep your prescriptions in one place.</p>
+    <div className="mx-auto max-w-xl">
+      <h1 className="mb-1 text-2xl font-bold text-ink">Patient & Clinic Sign In</h1>
+      <p className="mb-5 text-sm text-muted">Use 1-click Quick PIN access or enter your mobile number.</p>
       <Card>
         <RegisterForm />
       </Card>

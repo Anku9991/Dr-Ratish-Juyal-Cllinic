@@ -21,7 +21,18 @@ export default async function DoctorToday() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Today" description={formatDateLong(today)} />
+      <PageHeader
+        title={`Welcome, ${user.fullName}`}
+        description={`${formatDateLong(today)} • OPD Consultation Queue (12 PM - 5 PM)`}
+        actions={
+          <Link
+            href="/doctor/pad"
+            className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700"
+          >
+            Open Digital Prescription Pad
+          </Link>
+        }
+      />
       <section>
         <h2 className="mb-3 text-lg font-semibold">Queue</h2>
         {queue.length === 0 ? (

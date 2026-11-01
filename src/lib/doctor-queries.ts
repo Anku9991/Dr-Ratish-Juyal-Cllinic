@@ -24,25 +24,37 @@ export function patientNameOf(a: { patients: DoctorAppointmentRow["patients"] })
 const LIVE: AppointmentStatus[] = ["confirmed", "checked_in", "in_consultation", "completed", "no_show"];
 
 export async function listTodayAppointments(doctorId: string, date: string): Promise<DoctorAppointmentRow[]> {
-  const { data } = await supabaseAdmin().from("appointments").select(SELECT).eq("doctor_id", doctorId).eq("appointment_date", date).in("status", LIVE).order("start_time");
-  return (data ?? []) as unknown as DoctorAppointmentRow[];
+  try {
+    const { data } = await supabaseAdmin().from("appointments").select(SELECT).eq("doctor_id", doctorId).eq("appointment_date", date).in("status", LIVE).order("start_time");
+    return (data ?? []) as unknown as DoctorAppointmentRow[];
+  } catch {
+    return [];
+  }
 }
 
 export async function listUpcomingAppointments(doctorId: string, fromDate: string): Promise<DoctorAppointmentRow[]> {
-  const { data } = await supabaseAdmin()
-    .from("appointments")
-    .select(SELECT)
-    .eq("doctor_id", doctorId)
-    .in("status", ["confirmed", "checked_in", "in_consultation"])
-    .gte("appointment_date", fromDate)
-    .order("starts_at")
-    .limit(100);
-  return (data ?? []) as unknown as DoctorAppointmentRow[];
+  try {
+    const { data } = await supabaseAdmin()
+      .from("appointments")
+      .select(SELECT)
+      .eq("doctor_id", doctorId)
+      .in("status", ["confirmed", "checked_in", "in_consultation"])
+      .gte("appointment_date", fromDate)
+      .order("starts_at")
+      .limit(100);
+    return (data ?? []) as unknown as DoctorAppointmentRow[];
+  } catch {
+    return [];
+  }
 }
 
 export async function getDoctorAppointment(doctorId: string, appointmentId: string): Promise<DoctorAppointmentRow | null> {
-  const { data } = await supabaseAdmin().from("appointments").select(SELECT).eq("id", appointmentId).eq("doctor_id", doctorId).maybeSingle();
-  return (data ?? null) as unknown as DoctorAppointmentRow | null;
+  try {
+    const { data } = await supabaseAdmin().from("appointments").select(SELECT).eq("id", appointmentId).eq("doctor_id", doctorId).maybeSingle();
+    return (data ?? null) as unknown as DoctorAppointmentRow | null;
+  } catch {
+    return null;
+  }
 }
 
 export interface PatientHistoryRow {
@@ -54,10 +66,14 @@ export interface PatientHistoryRow {
 
 /** A doctor may see a patient's finalized-consultation history only for patients they have themselves seen. */
 export async function getPatientHistoryForDoctor(doctorId: string, patientId: string, excludeConsultationId?: string): Promise<PatientHistoryRow[]> {
-  const { data: hasSeen } = await supabaseAdmin().from("appointments").select("id").eq("doctor_id", doctorId).eq("patient_id", patientId).neq("status", "pending_payment").limit(1);
-  if (!hasSeen?.length) return [];
-  let q = supabaseAdmin().from("consultations").select("id, diagnosis, finalized_at, appointments!inner(starts_at)").eq("patient_id", patientId).eq("status", "finalized").order("finalized_at", { ascending: false }).limit(10);
-  if (excludeConsultationId) q = q.neq("id", excludeConsultationId);
-  const { data } = await q;
-  return (data ?? []) as unknown as PatientHistoryRow[];
+  try {
+    const { data: hasSeen } = await supabaseAdmin().from("appointments").select("id").eq("doctor_id", doctorId).eq("patient_id", patientId).neq("status", "pending_payment").limit(1);
+    if (!hasSeen?.length) return [];
+    let q = supabaseAdmin().from("consultations").select("id, diagnosis, finalized_at, appointments!inner(starts_at)").eq("patient_id", patientId).eq("status", "finalized").order("finalized_at", { ascending: false }).limit(10);
+    if (excludeConsultationId) q = q.neq("id", excludeConsultationId);
+    const { data } = await q;
+    return (data ?? []) as unknown as PatientHistoryRow[];
+  } catch {
+    return [];
+  }
 }

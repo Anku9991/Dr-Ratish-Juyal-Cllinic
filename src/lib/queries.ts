@@ -15,14 +15,22 @@ export function doctorNameOf(a: { doctors: ApptWithDoctor["doctors"] }): string 
 const APPT_SELECT = "*, doctors!inner(speciality, consultation_fee, profiles!inner(full_name)), payments(*)";
 
 export async function listPatientAppointments(patientId: string): Promise<ApptWithDoctor[]> {
-  const { data } = await supabaseAdmin().from("appointments").select(APPT_SELECT).eq("patient_id", patientId).order("starts_at", { ascending: false }).limit(200);
-  return (data ?? []) as unknown as ApptWithDoctor[];
+  try {
+    const { data } = await supabaseAdmin().from("appointments").select(APPT_SELECT).eq("patient_id", patientId).order("starts_at", { ascending: false }).limit(200);
+    return (data ?? []) as unknown as ApptWithDoctor[];
+  } catch {
+    return [];
+  }
 }
 
 /** Scoped to the patient: someone else's appointment id returns null (rendered as 404). */
 export async function getPatientAppointment(id: string, patientId: string): Promise<ApptWithDoctor | null> {
-  const { data } = await supabaseAdmin().from("appointments").select(APPT_SELECT).eq("id", id).eq("patient_id", patientId).maybeSingle();
-  return (data ?? null) as unknown as ApptWithDoctor | null;
+  try {
+    const { data } = await supabaseAdmin().from("appointments").select(APPT_SELECT).eq("id", id).eq("patient_id", patientId).maybeSingle();
+    return (data ?? null) as unknown as ApptWithDoctor | null;
+  } catch {
+    return null;
+  }
 }
 
 export function latestPayment(a: { payments: PaymentRow[] }): PaymentRow | undefined {

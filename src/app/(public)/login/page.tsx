@@ -12,9 +12,9 @@ export default async function LoginPage() {
   const user = await getSessionUser();
   if (user) redirect(ROLE_HOME[user.role]);
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="mb-1 text-2xl font-semibold">Sign in</h1>
-      <p className="mb-5 text-sm text-muted">Patients, doctors and clinic staff sign in here.</p>
+    <div className="mx-auto max-w-xl">
+      <h1 className="mb-1 text-2xl font-bold text-ink">Sign in to Clinic Portal</h1>
+      <p className="mb-5 text-sm text-muted">Select your portal or enter your 4-digit PIN for instant access.</p>
       <Card>
         <Suspense>
           <LoginForm />
