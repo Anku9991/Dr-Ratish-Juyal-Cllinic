@@ -18,6 +18,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={true}
             aria-current={active ? "page" : undefined}
             className={cn(
               "whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium",

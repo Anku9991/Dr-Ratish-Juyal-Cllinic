@@ -1,5 +1,5 @@
 import "server-only";
-import { supabaseAdmin } from "./supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "./supabase/admin";
 import type { AppointmentStatus } from "./status";
 
 export interface DoctorAppointmentRow {
@@ -24,6 +24,7 @@ export function patientNameOf(a: { patients: DoctorAppointmentRow["patients"] })
 const LIVE: AppointmentStatus[] = ["confirmed", "checked_in", "in_consultation", "completed", "no_show"];
 
 export async function listTodayAppointments(doctorId: string, date: string): Promise<DoctorAppointmentRow[]> {
+  if (!isSupabaseConfigured()) return [];
   try {
     const { data } = await supabaseAdmin().from("appointments").select(SELECT).eq("doctor_id", doctorId).eq("appointment_date", date).in("status", LIVE).order("start_time");
     return (data ?? []) as unknown as DoctorAppointmentRow[];
@@ -33,6 +34,7 @@ export async function listTodayAppointments(doctorId: string, date: string): Pro
 }
 
 export async function listUpcomingAppointments(doctorId: string, fromDate: string): Promise<DoctorAppointmentRow[]> {
+  if (!isSupabaseConfigured()) return [];
   try {
     const { data } = await supabaseAdmin()
       .from("appointments")
@@ -49,6 +51,7 @@ export async function listUpcomingAppointments(doctorId: string, fromDate: strin
 }
 
 export async function getDoctorAppointment(doctorId: string, appointmentId: string): Promise<DoctorAppointmentRow | null> {
+  if (!isSupabaseConfigured()) return null;
   try {
     const { data } = await supabaseAdmin().from("appointments").select(SELECT).eq("id", appointmentId).eq("doctor_id", doctorId).maybeSingle();
     return (data ?? null) as unknown as DoctorAppointmentRow | null;
@@ -66,6 +69,7 @@ export interface PatientHistoryRow {
 
 /** A doctor may see a patient's finalized-consultation history only for patients they have themselves seen. */
 export async function getPatientHistoryForDoctor(doctorId: string, patientId: string, excludeConsultationId?: string): Promise<PatientHistoryRow[]> {
+  if (!isSupabaseConfigured()) return [];
   try {
     const { data: hasSeen } = await supabaseAdmin().from("appointments").select("id").eq("doctor_id", doctorId).eq("patient_id", patientId).neq("status", "pending_payment").limit(1);
     if (!hasSeen?.length) return [];

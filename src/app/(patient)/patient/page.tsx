@@ -4,7 +4,7 @@ import { requirePageRole, requirePatientId } from "@/lib/auth";
 import { getClinicSettings } from "@/lib/clinic";
 import { doctorNameOf, listPatientAppointments } from "@/lib/queries";
 import { formatInstant } from "@/lib/time";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { Alert, AppointmentBadge, Card, EmptyState, LinkButton, PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -18,11 +18,13 @@ export default async function PatientDashboard() {
   ]);
 
   let patient: { patient_code?: string; date_of_birth?: string | null; gender?: string | null } | null = null;
-  try {
-    const res = await supabaseAdmin().from("patients").select("patient_code, date_of_birth, gender").eq("id", patientId).maybeSingle();
-    patient = res.data;
-  } catch {
-    patient = null;
+  if (isSupabaseConfigured()) {
+    try {
+      const res = await supabaseAdmin().from("patients").select("patient_code, date_of_birth, gender").eq("id", patientId).maybeSingle();
+      patient = res.data;
+    } catch {
+      patient = null;
+    }
   }
 
   const now = Date.now();

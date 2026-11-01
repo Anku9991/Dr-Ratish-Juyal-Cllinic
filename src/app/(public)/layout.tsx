@@ -15,29 +15,29 @@ export default async function PublicLayout({ children }: { children: ReactNode }
             {name}
           </Link>
           <nav aria-label="Primary" className="flex flex-wrap items-center gap-1 text-sm">
-            <Link href="/doctors" className="rounded-lg px-3 py-2 hover:bg-slate-100">
+            <Link href="/doctors" prefetch={true} className="rounded-lg px-3 py-2 hover:bg-slate-100">
               Doctors
             </Link>
-            <Link href="/videos" className="rounded-lg px-3 py-2 hover:bg-slate-100 font-medium text-purple-700">
+            <Link href="/videos" prefetch={true} className="rounded-lg px-3 py-2 hover:bg-slate-100 font-medium text-purple-700">
               Videos
             </Link>
-            <Link href="/queue" target="_blank" className="rounded-lg px-3 py-2 hover:bg-slate-100 font-medium text-emerald-700 flex items-center gap-1.5">
+            <Link href="/queue" prefetch={true} target="_blank" className="rounded-lg px-3 py-2 hover:bg-slate-100 font-medium text-emerald-700 flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>Queue TV</span>
             </Link>
-            <Link href="/contact" className="rounded-lg px-3 py-2 hover:bg-slate-100">
+            <Link href="/contact" prefetch={true} className="rounded-lg px-3 py-2 hover:bg-slate-100">
               Contact
             </Link>
             {user ? (
-              <Link href={ROLE_HOME[user.role]} className="rounded-lg bg-brand-600 px-3 py-2 font-medium text-white hover:bg-brand-700">
+              <Link href={ROLE_HOME[user.role]} prefetch={true} className="rounded-lg bg-brand-600 px-3 py-2 font-medium text-white hover:bg-brand-700">
                 My dashboard
               </Link>
             ) : (
               <>
-                <Link href="/login" className="rounded-lg px-3 py-2 hover:bg-slate-100">
+                <Link href="/login" prefetch={true} className="rounded-lg px-3 py-2 hover:bg-slate-100">
                   Sign in
                 </Link>
-                <Link href="/register" className="rounded-lg bg-brand-600 px-3 py-2 font-medium text-white hover:bg-brand-700">
+                <Link href="/register" prefetch={true} className="rounded-lg bg-brand-600 px-3 py-2 font-medium text-white hover:bg-brand-700">
                   Register
                 </Link>
               </>

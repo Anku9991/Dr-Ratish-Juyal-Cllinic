@@ -3,7 +3,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSupabaseServer } from "./supabase/server";
-import { supabaseAdmin } from "./supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "./supabase/admin";
 import { ROLE_HOME } from "./permissions";
 import type { Role } from "./status";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "./auth-session";
@@ -84,6 +84,7 @@ export async function requirePageRole(role: Role): Promise<SessionUser> {
 }
 
 export async function getPatientId(userId: string): Promise<string | null> {
+  if (!isSupabaseConfigured()) return userId;
   try {
     const { data } = await supabaseAdmin().from("patients").select("id").eq("profile_id", userId).maybeSingle();
     if (data?.id) return data.id as string;
@@ -96,6 +97,7 @@ export async function getPatientId(userId: string): Promise<string | null> {
 export async function getDoctorId(userId: string): Promise<string | null> {
   if (userId === PHYSIOTHERAPIST_ID) return PHYSIOTHERAPIST_ID;
   if (userId === DR_RATISH_JUYAL_ID) return DR_RATISH_JUYAL_ID;
+  if (!isSupabaseConfigured()) return DR_RATISH_JUYAL_ID;
 
   try {
     const { data } = await supabaseAdmin()

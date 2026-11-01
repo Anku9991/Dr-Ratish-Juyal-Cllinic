@@ -1,5 +1,5 @@
 import "server-only";
-import { supabaseAdmin } from "./supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "./supabase/admin";
 import type { AppointmentRow, PaymentRow } from "@/types/db";
 
 export type ApptWithDoctor = AppointmentRow & {
@@ -15,6 +15,7 @@ export function doctorNameOf(a: { doctors: ApptWithDoctor["doctors"] }): string 
 const APPT_SELECT = "*, doctors!inner(speciality, consultation_fee, profiles!inner(full_name)), payments(*)";
 
 export async function listPatientAppointments(patientId: string): Promise<ApptWithDoctor[]> {
+  if (!isSupabaseConfigured()) return [];
   try {
     const { data } = await supabaseAdmin().from("appointments").select(APPT_SELECT).eq("patient_id", patientId).order("starts_at", { ascending: false }).limit(200);
     return (data ?? []) as unknown as ApptWithDoctor[];
@@ -25,6 +26,7 @@ export async function listPatientAppointments(patientId: string): Promise<ApptWi
 
 /** Scoped to the patient: someone else's appointment id returns null (rendered as 404). */
 export async function getPatientAppointment(id: string, patientId: string): Promise<ApptWithDoctor | null> {
+  if (!isSupabaseConfigured()) return null;
   try {
     const { data } = await supabaseAdmin().from("appointments").select(APPT_SELECT).eq("id", id).eq("patient_id", patientId).maybeSingle();
     return (data ?? null) as unknown as ApptWithDoctor | null;

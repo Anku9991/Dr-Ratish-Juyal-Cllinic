@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requirePageRole } from "@/lib/auth";
 import { getClinicSettings, isClinicConfigured } from "@/lib/clinic";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { dateInTz, addDays } from "@/lib/time";
 import { formatINR } from "@/lib/money";
 import { Alert, Card, LinkButton, PageHeader } from "@/components/ui";
@@ -22,21 +22,23 @@ export default async function AdminDashboard() {
   let patientCount: { count?: number | null } = { count: 0 };
   let refundsDue: { count?: number | null } = { count: 0 };
 
-  try {
-    const [tCount, wRes, dCount, pCount, rDue] = await Promise.all([
-      admin.from("appointments").select("id", { count: "exact", head: true }).eq("appointment_date", today).in("status", ["confirmed", "checked_in", "in_consultation", "completed"]),
-      admin.from("payments").select("amount, status, created_at").gte("created_at", `${weekAgo}T00:00:00Z`).in("status", ["captured", "refunded", "partially_refunded"]),
-      admin.from("doctors").select("id", { count: "exact", head: true }).eq("is_active", true),
-      admin.from("patients").select("id", { count: "exact", head: true }),
-      admin.from("payments").select("id", { count: "exact", head: true }).eq("refund_required", true),
-    ]);
-    if (tCount?.count != null) todayCount = tCount;
-    if (wRes?.data) weekRevenue = (wRes.data as Array<{ amount: number }>).reduce((sum, p) => sum + (p.amount || 0), 0);
-    if (dCount?.count != null) doctorCount = dCount;
-    if (pCount?.count != null) patientCount = pCount;
-    if (rDue?.count != null) refundsDue = rDue;
-  } catch {
-    // Graceful offline fallback
+  if (isSupabaseConfigured()) {
+    try {
+      const [tCount, wRes, dCount, pCount, rDue] = await Promise.all([
+        admin.from("appointments").select("id", { count: "exact", head: true }).eq("appointment_date", today).in("status", ["confirmed", "checked_in", "in_consultation", "completed"]),
+        admin.from("payments").select("amount, status, created_at").gte("created_at", `${weekAgo}T00:00:00Z`).in("status", ["captured", "refunded", "partially_refunded"]),
+        admin.from("doctors").select("id", { count: "exact", head: true }).eq("is_active", true),
+        admin.from("patients").select("id", { count: "exact", head: true }),
+        admin.from("payments").select("id", { count: "exact", head: true }).eq("refund_required", true),
+      ]);
+      if (tCount?.count != null) todayCount = tCount;
+      if (wRes?.data) weekRevenue = (wRes.data as Array<{ amount: number }>).reduce((sum, p) => sum + (p.amount || 0), 0);
+      if (dCount?.count != null) doctorCount = dCount;
+      if (pCount?.count != null) patientCount = pCount;
+      if (rDue?.count != null) refundsDue = rDue;
+    } catch {
+      // Graceful offline fallback
+    }
   }
 
   return (

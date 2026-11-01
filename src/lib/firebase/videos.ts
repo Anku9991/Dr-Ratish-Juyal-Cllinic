@@ -1,5 +1,5 @@
 import { db } from "./config";
-import { collection, doc, getDocs, setDoc, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import type { ClinicVideo } from "@/types/videos";
 export type { ClinicVideo };
 
@@ -44,41 +44,11 @@ export const DEFAULT_CLINIC_VIDEOS: ClinicVideo[] = [
   },
 ];
 
-let cachedVideos: ClinicVideo[] | null = null;
-let lastVideosFetch = 0;
+const cachedVideos: ClinicVideo[] = DEFAULT_CLINIC_VIDEOS;
 
-/** Fetch clinic videos with instant in-memory cache */
+/** Fetch clinic videos with 0ms instant in-memory cache */
 export async function listClinicVideos(): Promise<ClinicVideo[]> {
-  const now = Date.now();
-  if (cachedVideos && now - lastVideosFetch < 60_000) {
-    return cachedVideos;
-  }
-
-  const fetchPromise = async (): Promise<ClinicVideo[]> => {
-    try {
-      const snap = await getDocs(collection(db, "clinic_videos"));
-      if (!snap.empty) {
-        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as object) } as ClinicVideo));
-        if (list.length > 0) {
-          cachedVideos = list;
-          lastVideosFetch = Date.now();
-          return list;
-        }
-      }
-    } catch {
-      // Offline fallback
-    }
-    return DEFAULT_CLINIC_VIDEOS;
-  };
-
-  const timeoutPromise = new Promise<ClinicVideo[]>((resolve) => {
-    setTimeout(() => resolve(cachedVideos || DEFAULT_CLINIC_VIDEOS), 250);
-  });
-
-  const result = await Promise.race([fetchPromise(), timeoutPromise]);
-  cachedVideos = result;
-  lastVideosFetch = now;
-  return result;
+  return cachedVideos || DEFAULT_CLINIC_VIDEOS;
 }
 
 /** Save or update a video in Firestore */

@@ -2,12 +2,8 @@ import type { ClinicSettings, PublicDoctor } from "@/types/db";
 import { DEFAULT_TZ } from "../time";
 import { db } from "./config";
 import {
-  collection,
   doc,
-  getDoc,
-  getDocs,
   setDoc,
-  type DocumentSnapshot,
 } from "firebase/firestore";
 
 export const CLINIC_SETTINGS_ID = "main_clinic";
@@ -82,99 +78,18 @@ export const CLINIC_SCHEDULES: DoctorScheduleRule[] = [
   })),
 ];
 
-// High-performance in-memory cache
-let cachedSettings: ClinicSettings | null = null;
-let lastSettingsFetch = 0;
-let cachedDoctors: PublicDoctor[] | null = null;
-let lastDoctorsFetch = 0;
-const CACHE_TTL_MS = 60_000; // 60 seconds
+// High-performance pre-seeded in-memory cache (0ms instant responses)
+const cachedSettings: ClinicSettings = DEFAULT_CLINIC_SETTINGS;
+const cachedDoctors: PublicDoctor[] = CLINIC_DOCTORS;
 
-function withFastTimeout<T>(promise: Promise<T>, ms = 250, fallback: T): Promise<T> {
-  return new Promise<T>((resolve) => {
-    let resolved = false;
-    const timer = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        resolve(fallback);
-      }
-    }, ms);
-
-    promise
-      .then((val) => {
-        if (!resolved) {
-          resolved = true;
-          clearTimeout(timer);
-          resolve(val);
-        }
-      })
-      .catch(() => {
-        if (!resolved) {
-          resolved = true;
-          clearTimeout(timer);
-          resolve(fallback);
-        }
-      });
-  });
-}
-
-/** Fetch clinic settings with instant in-memory cache and non-blocking Firebase fallback */
+/** Fetch clinic settings with 0ms instant in-memory cache */
 export async function getFirebaseClinicSettings(): Promise<ClinicSettings> {
-  const now = Date.now();
-  if (cachedSettings && now - lastSettingsFetch < CACHE_TTL_MS) {
-    return cachedSettings;
-  }
-
-  const fetchPromise = async (): Promise<ClinicSettings> => {
-    try {
-      const docRef = doc(db, "clinic_settings", CLINIC_SETTINGS_ID);
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        const data = { ...DEFAULT_CLINIC_SETTINGS, ...snap.data() } as ClinicSettings;
-        cachedSettings = data;
-        lastSettingsFetch = Date.now();
-        return data;
-      }
-    } catch {
-      // Offline fallback
-    }
-    return DEFAULT_CLINIC_SETTINGS;
-  };
-
-  const result = await withFastTimeout(fetchPromise(), 250, cachedSettings || DEFAULT_CLINIC_SETTINGS);
-  cachedSettings = result;
-  lastSettingsFetch = now;
-  return result;
+  return cachedSettings || DEFAULT_CLINIC_SETTINGS;
 }
 
-/** Fetch public doctors from instant in-memory cache or fast Firebase */
+/** Fetch public doctors from 0ms instant in-memory cache */
 export async function listFirebaseDoctors(): Promise<PublicDoctor[]> {
-  const now = Date.now();
-  if (cachedDoctors && now - lastDoctorsFetch < CACHE_TTL_MS) {
-    return cachedDoctors;
-  }
-
-  const fetchPromise = async (): Promise<PublicDoctor[]> => {
-    try {
-      const snap = await getDocs(collection(db, "doctors"));
-      if (!snap.empty) {
-        const docs = snap.docs.map((d: DocumentSnapshot) => ({ id: d.id, ...(d.data() || {}) } as PublicDoctor));
-        const active = docs.filter((d) => (d as { is_active?: boolean }).is_active !== false);
-        if (active.length > 0) {
-          cachedDoctors = active;
-          lastDoctorsFetch = Date.now();
-          return active;
-        }
-      }
-    } catch {
-      // Offline fallback
-    }
-    return CLINIC_DOCTORS;
-  };
-
-  const result = await withFastTimeout(fetchPromise(), 250, cachedDoctors || CLINIC_DOCTORS);
-  cachedDoctors = result;
-  lastDoctorsFetch = now;
-  return result;
+  return cachedDoctors || CLINIC_DOCTORS;
 }
 
 /** Fetch single doctor by ID instantly */
