@@ -44,6 +44,7 @@ declare module "firebase/firestore" {
   export function getDocs(query: unknown): Promise<QuerySnapshot>;
   export function setDoc(docRef: DocumentReference, data: unknown, options?: unknown): Promise<void>;
   export function updateDoc(docRef: DocumentReference, data: unknown): Promise<void>;
+  export function deleteDoc(docRef: DocumentReference): Promise<void>;
   export function query(collectionRef: unknown, ...queryConstraints: QueryConstraint[]): unknown;
   export function where(fieldPath: string, opStr: string, value: unknown): QueryConstraint;
   export function orderBy(fieldPath: string, directionStr?: string): QueryConstraint;
@@ -51,10 +52,26 @@ declare module "firebase/firestore" {
 }
 
 declare module "firebase/auth" {
+  export interface User {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    photoURL: string | null;
+    getIdToken(forceRefresh?: boolean): Promise<string>;
+  }
+  export interface UserCredential {
+    user: User;
+  }
+  export class AuthProvider {}
+  export class GoogleAuthProvider extends AuthProvider {
+    setCustomParameters(customOAuthParameters: Record<string, string>): void;
+  }
   export interface Auth {
-    currentUser: unknown;
+    currentUser: User | null;
   }
   export function getAuth(app?: unknown): Auth;
+  export function signInWithPopup(auth: Auth, provider: AuthProvider): Promise<UserCredential>;
+  export function signOut(auth: Auth): Promise<void>;
 }
 
 declare module "firebase/storage" {
