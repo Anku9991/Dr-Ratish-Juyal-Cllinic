@@ -133,31 +133,59 @@ export default function AdminVideosPage() {
 
       if (selectedFile) {
         setUploading(true);
-        setUploadProgress(20);
+        setUploadProgress(5);
 
         try {
-          const uploadData = new FormData();
-          uploadData.append("file", selectedFile);
-          setUploadProgress(45);
+          finalVideoUrl = await new Promise<string>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "/api/admin/videos/upload", true);
+            xhr.withCredentials = true;
 
-          const uploadRes = await fetch("/api/admin/videos/upload", {
-            method: "POST",
-            body: uploadData,
+            xhr.upload.onprogress = (evt) => {
+              if (evt.lengthComputable) {
+                const percent = Math.min(92, Math.round((evt.loaded / evt.total) * 100));
+                setUploadProgress(percent);
+              }
+            };
+
+            xhr.onload = () => {
+              setUploadProgress(95);
+              try {
+                const res = JSON.parse(xhr.responseText);
+                if (xhr.status >= 200 && xhr.status < 300 && res.ok && res.videoUrl) {
+                  resolve(res.videoUrl);
+                } else {
+                  reject(new Error(res.message || `Server returned error (${xhr.status})`));
+                }
+              } catch {
+                if (xhr.status === 413) {
+                  reject(new Error("Video file exceeds the 100MB server upload limit. Please compress the video or use a YouTube link."));
+                } else if (xhr.status === 401) {
+                  reject(new Error("Authentication expired. Please log in again using Staff PIN (2345)."));
+                } else if (xhr.status === 404) {
+                  reject(new Error("Upload server route not reachable. Please restart or use a YouTube link."));
+                } else {
+                  reject(new Error(`Upload failed (Status ${xhr.status}). Try a smaller file or YouTube embed.`));
+                }
+              }
+            };
+
+            xhr.onerror = () => {
+              reject(new Error("Connection error during video upload. Please check your network or paste a YouTube / Web video link."));
+            };
+
+            xhr.ontimeout = () => {
+              reject(new Error("Video upload timed out. Please try with a smaller video file."));
+            };
+
+            const uploadData = new FormData();
+            uploadData.append("file", selectedFile);
+            xhr.send(uploadData);
           });
-
-          setUploadProgress(75);
-          const uploadJson = await uploadRes.json();
-
-          if (!uploadRes.ok || !uploadJson.ok || !uploadJson.videoUrl) {
-            setUploading(false);
-            setAlertMsg({ type: "error", text: uploadJson.message || "Failed to upload video to server." });
-            return;
-          }
-
-          finalVideoUrl = uploadJson.videoUrl;
-        } catch {
+        } catch (err: unknown) {
           setUploading(false);
-          setAlertMsg({ type: "error", text: "Network error during video file upload." });
+          const errorMsg = err instanceof Error ? err.message : "Video upload failed";
+          setAlertMsg({ type: "error", text: errorMsg });
           return;
         }
       }
