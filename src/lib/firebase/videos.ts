@@ -44,18 +44,41 @@ export const DEFAULT_CLINIC_VIDEOS: ClinicVideo[] = [
   },
 ];
 
-/** Fetch clinic videos from Firebase with default fallbacks */
+let cachedVideos: ClinicVideo[] | null = null;
+let lastVideosFetch = 0;
+
+/** Fetch clinic videos with instant in-memory cache */
 export async function listClinicVideos(): Promise<ClinicVideo[]> {
-  try {
-    const snap = await getDocs(collection(db, "clinic_videos"));
-    if (!snap.empty) {
-      const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as object) } as ClinicVideo));
-      if (list.length > 0) return list;
-    }
-  } catch (err) {
-    console.warn("Using default clinic videos:", err);
+  const now = Date.now();
+  if (cachedVideos && now - lastVideosFetch < 60_000) {
+    return cachedVideos;
   }
-  return DEFAULT_CLINIC_VIDEOS;
+
+  const fetchPromise = async (): Promise<ClinicVideo[]> => {
+    try {
+      const snap = await getDocs(collection(db, "clinic_videos"));
+      if (!snap.empty) {
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as object) } as ClinicVideo));
+        if (list.length > 0) {
+          cachedVideos = list;
+          lastVideosFetch = Date.now();
+          return list;
+        }
+      }
+    } catch {
+      // Offline fallback
+    }
+    return DEFAULT_CLINIC_VIDEOS;
+  };
+
+  const timeoutPromise = new Promise<ClinicVideo[]>((resolve) => {
+    setTimeout(() => resolve(cachedVideos || DEFAULT_CLINIC_VIDEOS), 250);
+  });
+
+  const result = await Promise.race([fetchPromise(), timeoutPromise]);
+  cachedVideos = result;
+  lastVideosFetch = now;
+  return result;
 }
 
 /** Save or update a video in Firestore */

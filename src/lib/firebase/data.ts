@@ -82,51 +82,114 @@ export const CLINIC_SCHEDULES: DoctorScheduleRule[] = [
   })),
 ];
 
-/** Fetch clinic settings with Firebase fallback */
+// High-performance in-memory cache
+let cachedSettings: ClinicSettings | null = null;
+let lastSettingsFetch = 0;
+let cachedDoctors: PublicDoctor[] | null = null;
+let lastDoctorsFetch = 0;
+const CACHE_TTL_MS = 60_000; // 60 seconds
+
+function withFastTimeout<T>(promise: Promise<T>, ms = 250, fallback: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    let resolved = false;
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(fallback);
+      }
+    }, ms);
+
+    promise
+      .then((val) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          resolve(val);
+        }
+      })
+      .catch(() => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          resolve(fallback);
+        }
+      });
+  });
+}
+
+/** Fetch clinic settings with instant in-memory cache and non-blocking Firebase fallback */
 export async function getFirebaseClinicSettings(): Promise<ClinicSettings> {
-  try {
-    const docRef = doc(db, "clinic_settings", CLINIC_SETTINGS_ID);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      return { ...DEFAULT_CLINIC_SETTINGS, ...snap.data() } as ClinicSettings;
-    }
-  } catch (err) {
-    console.warn("Using offline/cached clinic settings:", err);
+  const now = Date.now();
+  if (cachedSettings && now - lastSettingsFetch < CACHE_TTL_MS) {
+    return cachedSettings;
   }
-  return DEFAULT_CLINIC_SETTINGS;
+
+  const fetchPromise = async (): Promise<ClinicSettings> => {
+    try {
+      const docRef = doc(db, "clinic_settings", CLINIC_SETTINGS_ID);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = { ...DEFAULT_CLINIC_SETTINGS, ...snap.data() } as ClinicSettings;
+        cachedSettings = data;
+        lastSettingsFetch = Date.now();
+        return data;
+      }
+    } catch {
+      // Offline fallback
+    }
+    return DEFAULT_CLINIC_SETTINGS;
+  };
+
+  const result = await withFastTimeout(fetchPromise(), 250, cachedSettings || DEFAULT_CLINIC_SETTINGS);
+  cachedSettings = result;
+  lastSettingsFetch = now;
+  return result;
 }
 
-/** Fetch public doctors from Firebase or pre-seeded data */
+/** Fetch public doctors from instant in-memory cache or fast Firebase */
 export async function listFirebaseDoctors(): Promise<PublicDoctor[]> {
-  try {
-    const snap = await getDocs(collection(db, "doctors"));
-    if (!snap.empty) {
-      const docs = snap.docs.map((d: DocumentSnapshot) => ({ id: d.id, ...(d.data() || {}) } as PublicDoctor));
-      // Only keep active clinic doctors
-      const active = docs.filter((d) => (d as { is_active?: boolean }).is_active !== false);
-      if (active.length > 0) return active;
-    }
-  } catch (err: unknown) {
-    console.warn("Using default clinic doctors list:", err);
+  const now = Date.now();
+  if (cachedDoctors && now - lastDoctorsFetch < CACHE_TTL_MS) {
+    return cachedDoctors;
   }
-  return CLINIC_DOCTORS;
+
+  const fetchPromise = async (): Promise<PublicDoctor[]> => {
+    try {
+      const snap = await getDocs(collection(db, "doctors"));
+      if (!snap.empty) {
+        const docs = snap.docs.map((d: DocumentSnapshot) => ({ id: d.id, ...(d.data() || {}) } as PublicDoctor));
+        const active = docs.filter((d) => (d as { is_active?: boolean }).is_active !== false);
+        if (active.length > 0) {
+          cachedDoctors = active;
+          lastDoctorsFetch = Date.now();
+          return active;
+        }
+      }
+    } catch {
+      // Offline fallback
+    }
+    return CLINIC_DOCTORS;
+  };
+
+  const result = await withFastTimeout(fetchPromise(), 250, cachedDoctors || CLINIC_DOCTORS);
+  cachedDoctors = result;
+  lastDoctorsFetch = now;
+  return result;
 }
 
-/** Fetch single doctor by ID */
+/** Fetch single doctor by ID instantly */
 export async function getFirebaseDoctor(id: string): Promise<PublicDoctor | null> {
   const doc0 = CLINIC_DOCTORS[0];
   const doc1 = CLINIC_DOCTORS[1];
   if (id === DR_RATISH_JUYAL_ID && doc0) return doc0;
   if (id === PHYSIOTHERAPIST_ID && doc1) return doc1;
-  try {
-    const docRef = doc(db, "doctors", id);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      return { id: snap.id, ...(snap.data() || {}) } as PublicDoctor;
-    }
-  } catch (err: unknown) {
-    console.warn("Error fetching doctor:", err);
+
+  // Check in cached doctors
+  if (cachedDoctors) {
+    const found = cachedDoctors.find((d) => d.id === id);
+    if (found) return found;
   }
+
   return CLINIC_DOCTORS.find((d) => d.id === id) ?? null;
 }
 

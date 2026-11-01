@@ -30,7 +30,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   // 2. Check Supabase session fallback
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (url && anon) {
+  if (url && anon && !url.includes("placeholder")) {
     try {
       const supabase = createServerClient(url, anon, {
         cookies: {

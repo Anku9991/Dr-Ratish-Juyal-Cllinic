@@ -4,6 +4,7 @@ import { LinkButton, EmptyState } from "@/components/ui";
 import { Clock, FileSignature, MapPin, Phone, Brain, Activity, Video } from "lucide-react";
 import { listClinicVideos } from "@/lib/firebase/videos";
 import { ClinicVideosSection } from "@/components/ClinicVideosSection";
+import { LiveOpdBadge } from "@/components/LiveOpdBadge";
 
 export default async function Home() {
   const [clinic, doctors, videos] = await Promise.all([
@@ -17,9 +18,12 @@ export default async function Home() {
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-[20px] border border-line bg-gradient-to-br from-white via-brand-50/20 to-sky-50/30 px-6 py-12 sm:px-10 lg:py-16 shadow-xs">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50/90 px-3.5 py-1 text-xs font-semibold text-brand-700 mb-4 shadow-2xs">
-            <Brain className="h-3.5 w-3.5" />
-            <span>Neurology & Neuro-Physiotherapy Excellence • Lucknow</span>
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50/90 px-3.5 py-1 text-xs font-semibold text-brand-700 shadow-2xs">
+              <Brain className="h-3.5 w-3.5" />
+              <span>Neurology & Neuro-Physiotherapy Excellence • Lucknow</span>
+            </div>
+            <LiveOpdBadge />
           </div>
           <h1 className="text-3xl font-bold leading-tight tracking-tight text-ink sm:text-5xl">
             {clinicDisplayName(clinic)}

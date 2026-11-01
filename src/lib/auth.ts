@@ -44,7 +44,12 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     // Continue to Supabase fallback
   }
 
-  // 2. Supabase fallback
+  // 2. Supabase fallback (only if real supabase url configured)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl || supabaseUrl.includes("placeholder")) {
+    return null;
+  }
+
   try {
     const supabase = await createSupabaseServer();
     const { data, error } = await supabase.auth.getUser();

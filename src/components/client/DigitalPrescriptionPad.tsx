@@ -13,6 +13,7 @@ import {
   RefreshCw,
   ExternalLink,
   Copy,
+  Download,
 } from "lucide-react";
 
 export interface DigitalPrescriptionPadProps {
@@ -509,6 +510,22 @@ export function DigitalPrescriptionPad({
             title="Clear canvas"
           >
             <Trash2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const canvas = canvasRef.current;
+              if (!canvas) return;
+              const link = document.createElement("a");
+              link.download = `Prescription-${appointmentId || "notes"}-${new Date().toISOString().slice(0, 10)}.png`;
+              link.href = canvas.toDataURL("image/png");
+              link.click();
+            }}
+            disabled={strokes.length === 0}
+            className="p-1.5 rounded-lg border border-line bg-white text-brand-700 hover:bg-brand-50 disabled:opacity-40 cursor-pointer"
+            title="Download Prescription PNG"
+          >
+            <Download className="h-4 w-4" />
           </button>
         </div>
 
