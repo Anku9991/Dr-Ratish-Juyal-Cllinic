@@ -1,16 +1,7 @@
 import { db } from "./config";
 import { collection, doc, getDocs, setDoc, deleteDoc } from "firebase/firestore";
-
-export interface ClinicVideo {
-  id: string;
-  title: string;
-  description: string;
-  youtubeId: string; // YouTube Video ID (e.g. dQw4w9WgXcQ) or embed link
-  speaker: string;
-  category: "Doctor Profile" | "Neurology Care" | "Rehabilitation" | "Clinic Tour";
-  duration: string;
-  isFeatured?: boolean;
-}
+import type { ClinicVideo } from "@/types/videos";
+export type { ClinicVideo };
 
 export const DEFAULT_CLINIC_VIDEOS: ClinicVideo[] = [
   {

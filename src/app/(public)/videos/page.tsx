@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { listClinicVideos } from "@/lib/firebase/videos";
-import { ClinicVideosSection } from "@/components/client/ClinicVideosSection";
+import { ClinicVideosSection } from "@/components/ClinicVideosSection";
 import { PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = {

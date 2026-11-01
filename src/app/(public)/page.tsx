@@ -3,7 +3,7 @@ import { DoctorCard } from "@/components/DoctorCard";
 import { LinkButton, EmptyState } from "@/components/ui";
 import { Clock, FileSignature, MapPin, Phone, Brain, Activity, Video } from "lucide-react";
 import { listClinicVideos } from "@/lib/firebase/videos";
-import { ClinicVideosSection } from "@/components/client/ClinicVideosSection";
+import { ClinicVideosSection } from "@/components/ClinicVideosSection";
 
 export default async function Home() {
   const [clinic, doctors, videos] = await Promise.all([

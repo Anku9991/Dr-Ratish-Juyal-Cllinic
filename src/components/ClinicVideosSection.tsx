@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Play, Sparkles, X, Clock, User } from "lucide-react";
-import type { ClinicVideo } from "@/lib/firebase/videos";
+import type { ClinicVideo } from "@/types/videos";
 
 export function ClinicVideosSection({ initialVideos }: { initialVideos: ClinicVideo[] }) {
   const [activeCategory, setActiveCategory] = useState<string>("All");
