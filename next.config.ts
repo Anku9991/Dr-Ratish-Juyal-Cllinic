@@ -7,9 +7,9 @@ const csp = [
   // Next.js injects inline bootstrap scripts; Razorpay Checkout is loaded from its own origin.
   `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://checkout.razorpay.com`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.supabase.co https://*.razorpay.com",
+  "img-src 'self' data: blob: https://*.supabase.co https://*.razorpay.com https://*.firebasestorage.app https://firebasestorage.googleapis.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com" + (isDev ? " ws:" : ""),
+  "connect-src 'self' https://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com" + (isDev ? " ws:" : ""),
   "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com",
   "frame-ancestors 'self'",
   "form-action 'self' https://api.razorpay.com",
