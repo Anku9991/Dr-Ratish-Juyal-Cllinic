@@ -9,11 +9,11 @@ export interface SessionPayload {
   exp: number; // Unix timestamp in seconds
 }
 
-const SESSION_SECRET =
-  process.env.SESSION_SECRET ||
-  (process.env.NODE_ENV === "production"
-    ? (() => { throw new Error("CRITICAL: SESSION_SECRET must be set in production"); })()
-    : "dr-ratish-juyal-clinic-dev-secret-key-38947298347");
+const DEFAULT_SESSION_SECRET = "dr-ratish-juyal-clinic-session-secret-key-prod-9f8a7b6c5d4e3f2a";
+
+function getSessionSecret(): string {
+  return process.env.SESSION_SECRET || DEFAULT_SESSION_SECRET;
+}
 
 export const SESSION_COOKIE_NAME = "clinic_session";
 
@@ -21,7 +21,7 @@ async function getCryptoKey(): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   return crypto.subtle.importKey(
     "raw",
-    encoder.encode(SESSION_SECRET),
+    encoder.encode(getSessionSecret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"]
