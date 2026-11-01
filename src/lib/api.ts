@@ -8,7 +8,8 @@ import { fieldErrors } from "./validation";
 import { hasPermission, type AdminPermission } from "./permissions";
 import type { Role } from "./status";
 
-const MAX_BODY_BYTES = 256 * 1024;
+const DEFAULT_MAX_BODY_BYTES = 1024 * 1024; // 1 MB
+const LARGE_PAYLOAD_BYTES = 10 * 1024 * 1024; // 10 MB for canvas pad images & reports
 
 export interface RouteOptions<S extends z.ZodTypeAny | undefined> {
   /** Allowed roles. Omit for public endpoints. */
@@ -17,6 +18,7 @@ export interface RouteOptions<S extends z.ZodTypeAny | undefined> {
   permission?: AdminPermission;
   schema?: S;
   limit?: { name: string; max: number; windowMs: number; by?: "ip" | "user" };
+  maxBodyBytes?: number;
   /** Webhooks/cron authenticate by signature/secret instead of cookies. */
   skipOriginCheck?: boolean;
 }
@@ -100,7 +102,12 @@ export function route<S extends z.ZodTypeAny | undefined = undefined>(
       let body: unknown = undefined;
       if (opts.schema) {
         const text = await req.text();
-        if (text.length > MAX_BODY_BYTES) throw new HttpError(413, "payload_too_large", "Request is too large.");
+        const maxAllowed =
+          opts.maxBodyBytes ??
+          (req.nextUrl.pathname.includes("/consultations/") || req.nextUrl.pathname.includes("/reports")
+            ? LARGE_PAYLOAD_BYTES
+            : DEFAULT_MAX_BODY_BYTES);
+        if (text.length > maxAllowed) throw new HttpError(413, "payload_too_large", "Request is too large.");
         let json: unknown;
         try {
           json = text ? JSON.parse(text) : {};

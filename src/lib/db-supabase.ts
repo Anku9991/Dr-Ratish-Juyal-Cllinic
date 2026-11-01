@@ -42,7 +42,7 @@ export function createSupabaseBookingDb(): BookingDb {
       if (!data) return null;
       const doc = Array.isArray(data.doctors) ? data.doctors[0] : data.doctors;
       const { doctors: _drop, ...rest } = data as Record<string, unknown> & { doctors: unknown };
-      return { ...(rest as Omit<AppointmentForPayment, "fee">), fee: (doc as { consultation_fee: number | string }).consultation_fee };
+      return { ...(rest as Omit<AppointmentForPayment, "fee">), fee: (doc as { consultation_fee?: number | string })?.consultation_fee ?? 0 };
     },
 
     async paymentsForAppointment(appointmentId) {

@@ -66,7 +66,7 @@ export default async function PaymentStatusPage({ params }: { params: Promise<{ 
             </div>
             <div>
               <span className="text-muted block text-xs font-medium">Amount to Pay at Desk</span>
-              <span className="font-bold text-emerald-700 text-base">{formatINR(last?.amount ?? 100000)}</span>
+              <span className="font-bold text-emerald-700 text-base">{formatINR(last?.amount ?? (Number(a.doctors?.consultation_fee || 1000) * 100))}</span>
               <span className="text-[11px] text-muted block">Direct Cash / Counter</span>
             </div>
           </div>

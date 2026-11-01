@@ -9,13 +9,13 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.supabase.co https://*.razorpay.com https://*.firebasestorage.app https://firebasestorage.googleapis.com https://img.youtube.com https://i.ytimg.com https://images.unsplash.com",
   "font-src 'self' data:",
-  "media-src 'self' data: blob: https://*.firebasestorage.app https://firebasestorage.googleapis.com https://* http://*",
+  "media-src 'self' data: blob: https://*.firebasestorage.app https://firebasestorage.googleapis.com https://*.youtube.com https://*.youtube-nocookie.com https://*.vimeo.com",
   "connect-src 'self' https://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasestorage.app https://firebasestorage.googleapis.com" + (isDev ? " ws:" : ""),
   "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",
   "frame-ancestors 'self'",
   "form-action 'self' https://api.razorpay.com",
   "base-uri 'self'",
-  "object-src 'self'",
+  "object-src 'none'",
 ].join("; ");
 
 const nextConfig: NextConfig = {

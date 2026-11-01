@@ -83,16 +83,7 @@ export async function resolveUserRole(
     };
   }
 
-  // 3. Heuristic for quick access / testing if doctor email contains name
-  if (cleanEmail.includes("ratish") || cleanEmail.includes("juyal")) {
-    return {
-      role: "doctor",
-      doctorId: DR_RATISH_JUYAL_ID,
-      permissions: ["medical_records", "consultation"],
-    };
-  }
-
-  // 4. Default for all other Google users is "patient"
+  // 3. Default for all other users is strictly "patient"
   return { role: "patient", permissions: [] };
 }
 

@@ -203,25 +203,31 @@ export default async function PatientDashboard() {
           </Link>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          {patientReports.slice(0, 3).map((r) => (
-            <div key={r.id} className="rounded-xl border border-line bg-white p-4 shadow-2xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
-                  {r.category}
-                </span>
-                <span className="text-[11px] text-muted">{r.fileSizeFormatted}</span>
+        {patientReports.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-line bg-surface/50 p-6 text-center text-xs text-muted">
+            No medical reports uploaded yet. Upload Brain/Spine MRI scans or blood tests for your doctor in the Medical Reports section.
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {patientReports.slice(0, 3).map((r) => (
+              <div key={r.id} className="rounded-xl border border-line bg-white p-4 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                    {r.category}
+                  </span>
+                  <span className="text-[11px] text-muted">{r.fileSizeFormatted}</span>
+                </div>
+                <h4 className="font-bold text-ink text-xs line-clamp-1">{r.title}</h4>
+                <p className="text-[11px] text-muted">Date: {r.reportDate}</p>
+                <div className="pt-1 flex items-center justify-between text-xs">
+                  <Link href="/patient/reports" className="font-semibold text-brand-700 hover:underline">
+                    Preview & Details →
+                  </Link>
+                </div>
               </div>
-              <h4 className="font-bold text-ink text-xs line-clamp-1">{r.title}</h4>
-              <p className="text-[11px] text-muted">Date: {r.reportDate}</p>
-              <div className="pt-1 flex items-center justify-between text-xs">
-                <Link href="/patient/reports" className="font-semibold text-brand-700 hover:underline">
-                  Preview & Details →
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

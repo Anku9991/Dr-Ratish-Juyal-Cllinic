@@ -55,6 +55,8 @@ export function DigitalPrescriptionPad({
   const [template, setTemplate] = useState<"ruled" | "neuro" | "blank">("ruled");
 
   const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const strokesRef = useRef<Stroke[]>([]);
+  strokesRef.current = strokes;
   const [isDrawing, setIsDrawing] = useState(false);
   const currentStroke = useRef<Stroke | null>(null);
 
@@ -101,6 +103,7 @@ export function DigitalPrescriptionPad({
           setStrokes(res.data.strokes);
           if (res.data.template) setTemplate(res.data.template);
           setLastSavedTime(new Date(res.data.updatedAt || Date.now()).toLocaleTimeString());
+          if (res.data.imageData && onImageChange) onImageChange(res.data.imageData);
         }
       })
       .catch(() => {});
@@ -133,8 +136,10 @@ export function DigitalPrescriptionPad({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
 
     ctx.clearRect(0, 0, width, height);
 
@@ -253,13 +258,8 @@ export function DigitalPrescriptionPad({
     canvas.style.width = `${targetWidth}px`;
     canvas.style.height = `${targetHeight}px`;
 
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.scale(dpr, dpr);
-    }
-
     redrawCanvas();
-  }, [compact, redrawCanvas]);
+  }, [compact]);
 
   useEffect(() => {
     redrawCanvas();
@@ -348,6 +348,7 @@ export function DigitalPrescriptionPad({
     setStrokes((prev) => {
       const copy = [...prev];
       copy[copy.length - 1] = { ...currentStroke.current! };
+      strokesRef.current = copy;
       return copy;
     });
   };
@@ -361,7 +362,7 @@ export function DigitalPrescriptionPad({
     setIsDrawing(false);
     currentStroke.current = null;
 
-    triggerAutoSave(strokes);
+    triggerAutoSave(strokesRef.current);
   };
 
   const handleUndo = () => {

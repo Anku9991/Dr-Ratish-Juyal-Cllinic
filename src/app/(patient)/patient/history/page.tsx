@@ -132,8 +132,13 @@ export default async function HistoryPage() {
     }
   }
 
-  // Combine DB consultations with demo records if none exist
-  const combinedConsultations = dbConsultations.length > 0 ? dbConsultations : DEMO_CONSULTATIONS;
+  // Combine DB consultations with demo records only for demo accounts
+  const isDemoPatient = patientId === "patient-rajesh" || patientId === "patient-sunita";
+  const combinedConsultations = dbConsultations.length > 0
+    ? dbConsultations
+    : isDemoPatient
+    ? DEMO_CONSULTATIONS
+    : [];
 
   return (
     <div className="space-y-6">

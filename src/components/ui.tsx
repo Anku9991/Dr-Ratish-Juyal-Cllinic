@@ -14,9 +14,9 @@ export const buttonStyles = {
   ghost: `${buttonBase} text-brand-700 hover:bg-brand-50`,
 };
 
-export function LinkButton({ href, variant = "primary", children, className }: { href: string; variant?: keyof typeof buttonStyles; children: ReactNode; className?: string }) {
+export function LinkButton({ href, variant = "primary", children, className, target, rel }: { href: string; variant?: keyof typeof buttonStyles; children: ReactNode; className?: string; target?: string; rel?: string }) {
   return (
-    <Link href={href} className={cn(buttonStyles[variant], className)}>
+    <Link href={href} target={target} rel={rel} className={cn(buttonStyles[variant], className)}>
       {children}
     </Link>
   );

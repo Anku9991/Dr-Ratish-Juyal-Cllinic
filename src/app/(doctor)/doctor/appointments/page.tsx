@@ -7,6 +7,7 @@ import { dateInTz, formatInstant } from "@/lib/time";
 import { AppointmentBadge, EmptyState, PageHeader, TableWrap, td, th } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Upcoming appointments" };
+export const dynamic = "force-dynamic";
 
 export default async function DoctorUpcoming() {
   const user = await requirePageRole("doctor");

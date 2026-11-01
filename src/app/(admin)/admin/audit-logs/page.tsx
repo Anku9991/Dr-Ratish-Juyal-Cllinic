@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requirePageRole } from "@/lib/auth";
 import { getClinicSettings } from "@/lib/clinic";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { formatInstant } from "@/lib/time";
 import { EmptyState, PageHeader, TableWrap, td, th } from "@/components/ui";
 
@@ -11,10 +11,18 @@ export default async function AuditLogsPage({ searchParams }: { searchParams: Pr
   await requirePageRole("admin");
   const { q } = await searchParams;
   const settings = await getClinicSettings();
-  let query = supabaseAdmin().from("audit_logs").select("id, action, entity_type, entity_id, created_at, profiles(full_name)").order("created_at", { ascending: false }).limit(200);
-  if (q?.trim()) query = query.ilike("action", `%${q.trim()}%`);
-  const { data } = await query;
-  const rows = (data ?? []) as unknown as Array<{ id: string; action: string; entity_type: string; entity_id: string | null; created_at: string; profiles: { full_name: string } | null }>;
+  let rows: Array<{ id: string; action: string; entity_type: string; entity_id: string | null; created_at: string; profiles: { full_name: string } | null }> = [];
+
+  if (isSupabaseConfigured()) {
+    try {
+      let query = supabaseAdmin().from("audit_logs").select("id, action, entity_type, entity_id, created_at, profiles(full_name)").order("created_at", { ascending: false }).limit(200);
+      if (q?.trim()) query = query.ilike("action", `%${q.trim()}%`);
+      const { data } = await query;
+      if (data) rows = data as unknown as typeof rows;
+    } catch {
+      // offline fallback
+    }
+  }
 
   return (
     <div>

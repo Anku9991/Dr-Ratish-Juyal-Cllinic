@@ -6,7 +6,7 @@ import { getClinicSettings } from "@/lib/clinic";
 import { doctorNameOf, getPatientAppointment, latestPayment, paidPayment } from "@/lib/queries";
 import { formatINR } from "@/lib/money";
 import { formatInstant } from "@/lib/time";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { Alert, AppointmentBadge, Card, DefinitionList, LinkButton, PageHeader, PaymentBadge } from "@/components/ui";
 import { CancelAppointment } from "@/components/client/CancelAppointment";
 import { RetryPayment } from "@/components/client/RetryPayment";
@@ -23,12 +23,30 @@ export default async function AppointmentDetail({ params }: { params: Promise<{ 
 
   const paid = paidPayment(a);
   const last = latestPayment(a);
-  const { data: rx } = await supabaseAdmin()
-    .from("prescriptions")
-    .select("id, prescription_number")
-    .eq("patient_id", patientId)
-    .eq("status", "issued")
-    .in("consultation_id", (await supabaseAdmin().from("consultations").select("id").eq("appointment_id", a.id)).data?.map((c) => c.id as string) ?? []);
+  const isCash = a.payments.some((p) => p.method === "cash");
+
+  let rx: Array<{ id: string; prescription_number: string }> | null = null;
+  if (isSupabaseConfigured()) {
+    try {
+      const { data: consultations } = await supabaseAdmin()
+        .from("consultations")
+        .select("id")
+        .eq("appointment_id", a.id);
+      const consultationIds = consultations?.map((c) => c.id as string) ?? [];
+
+      if (consultationIds.length > 0) {
+        const { data } = await supabaseAdmin()
+          .from("prescriptions")
+          .select("id, prescription_number")
+          .eq("patient_id", patientId)
+          .eq("status", "issued")
+          .in("consultation_id", consultationIds);
+        rx = data;
+      }
+    } catch {
+      // Supabase optional
+    }
+  }
   const hoursLeft = (new Date(a.starts_at).getTime() - Date.now()) / 3_600_000;
   const canCancel = ["pending_payment", "confirmed"].includes(a.status);
   const payable = a.status === "pending_payment" && (!a.payment_expires_at || new Date(a.payment_expires_at).getTime() > Date.now());
@@ -93,7 +111,7 @@ export default async function AppointmentDetail({ params }: { params: Promise<{ 
 
       {canCancel ? (
         <div>
-          <CancelAppointment appointmentId={a.id} paid={Boolean(paid)} refundEligible={hoursLeft >= settings.cancellation_window_hours} />
+          <CancelAppointment appointmentId={a.id} paid={Boolean(paid) && !isCash} refundEligible={hoursLeft >= settings.cancellation_window_hours} />
         </div>
       ) : null}
     </div>

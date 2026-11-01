@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { z } from "zod";
 import { requirePageRole, requirePatientId } from "@/lib/auth";
 import { getClinicSettings } from "@/lib/clinic";
 import { doctorNameOf, getPatientAppointment, paidPayment } from "@/lib/queries";
@@ -8,19 +7,29 @@ import { formatINR } from "@/lib/money";
 import { formatInstant } from "@/lib/time";
 import { Card, DefinitionList, LinkButton, PageHeader } from "@/components/ui";
 import { PrintButton } from "@/components/client/PrintButton";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = { title: "Payment receipt" };
 
 export default async function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!z.string().uuid().safeParse(id).success) notFound();
+  if (!id || id.length < 5) notFound();
   const user = await requirePageRole("patient");
   const patientId = await requirePatientId(user);
-  const [a, settings, { data: patient }] = await Promise.all([
+  
+  let patientCode = "P-101";
+  if (isSupabaseConfigured()) {
+    try {
+      const { data } = await supabaseAdmin().from("patients").select("patient_code").eq("id", patientId).maybeSingle();
+      if (data?.patient_code) patientCode = data.patient_code;
+    } catch {
+      // Offline fallback
+    }
+  }
+
+  const [a, settings] = await Promise.all([
     getPatientAppointment(id, patientId),
     getClinicSettings(),
-    supabaseAdmin().from("patients").select("patient_code").eq("id", patientId).single(),
   ]);
   const paid = a ? paidPayment(a) : undefined;
   if (!a || !paid) notFound();
@@ -48,7 +57,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
           items={[
             ["Receipt number", paid.receipt_number],
             ["Paid on", paid.verified_at ? formatInstant(paid.verified_at, settings.timezone) : "-"],
-            ["Patient", `${user.fullName} (${patient?.patient_code ?? ""})`],
+            ["Patient", `${user.fullName} (${patientCode})`],
             ["Appointment", `${a.appointment_number} with ${doctorNameOf(a)}`],
             ["Consultation date", formatInstant(a.starts_at, settings.timezone)],
             ["Payment method", paid.failure_reason === "Pay at Clinic Counter (Cash)" ? "Cash (Pay at Clinic Counter)" : (paid.method ? paid.method.toUpperCase() : "Online (Razorpay)")],

@@ -104,20 +104,8 @@ export function BookingFlow({
         // Try hold + checkout
         const hold = await api<Hold>("/api/booking/hold", "POST", { doctorId, date, startTime: time });
         if (!hold.ok) {
-          // If Supabase RPC is offline, fallback seamlessly to direct Razorpay appointment
-          const direct = await api<{ appointmentId: string }>("/api/booking/direct-book", "POST", {
-            doctorId,
-            date,
-            startTime: time,
-            reason: reason.trim() || undefined,
-            paymentMethod: "razorpay",
-          });
-          if (direct.ok) {
-            router.push(`/patient/payment-status/${direct.data.appointmentId}`);
-            return;
-          }
           setBusy(false);
-          setError(hold.message);
+          setError(hold.message || "Failed to reserve slot. It may have already been booked.");
           if (hold.status === 409) setTime(null);
           return;
         }

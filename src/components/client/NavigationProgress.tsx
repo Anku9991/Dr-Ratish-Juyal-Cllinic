@@ -28,11 +28,13 @@ export function NavigationProgress() {
       const href = target.getAttribute("href");
       const targetAttr = target.getAttribute("target");
 
-      // Only handle internal links without new tab
+      // Only handle internal links without new tab or download
       if (
         href &&
         href.startsWith("/") &&
         !href.startsWith("#") &&
+        !href.startsWith("/api/") &&
+        !target.hasAttribute("download") &&
         (!targetAttr || targetAttr === "_self")
       ) {
         if (href === pathname) return; // Same page

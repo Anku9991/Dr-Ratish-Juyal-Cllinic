@@ -5,7 +5,10 @@ export const metadata: Metadata = {
   title: "Doctor Prescription Pad - Dr. Ratish Juyal Clinic",
 };
 
+import { requirePageRole } from "@/lib/auth";
+
 export default async function PadPage({ params }: { params: Promise<{ id: string }> }) {
+  await requirePageRole("doctor");
   const { id } = await params;
 
   return (

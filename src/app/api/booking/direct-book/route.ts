@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, getPatientId } from "@/lib/auth";
 import { clinicStore, type PaymentMethod } from "@/lib/appointments-store";
 import { DR_RATISH_JUYAL_ID } from "@/lib/firebase/data";
 
@@ -25,27 +25,36 @@ export async function POST(req: NextRequest) {
 
     const { doctorId, date, startTime, reason, paymentMethod } = parsed.data;
     const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Please sign in to book an appointment." }, { status: 401 });
+    }
 
     const isNeuro = doctorId === DR_RATISH_JUYAL_ID;
     const doctorName = isNeuro ? "Dr. Ratish Juyal" : "Dr. Amit K. Sharma (PT)";
     const speciality = isNeuro ? "Senior Consultant Neurologist" : "Consultant Neuro-Physiotherapist";
 
-    const patientId = user?.id || "pat_guest_walkin";
-    const patientName = user?.fullName || "Clinic Patient";
-    const patientPhone = user?.mobile || "+91 94530 25888";
+    const patientId = (await getPatientId(user.id)) || user.id;
+    const patientName = user.fullName || "Clinic Patient";
+    const patientPhone = user.mobile || "+91 94530 25888";
 
-    const appt = clinicStore.createAppointment({
-      doctorId,
-      doctorName,
-      speciality,
-      patientId,
-      patientName,
-      patientPhone,
-      date,
-      startTime,
-      reason,
-      paymentMethod: paymentMethod as PaymentMethod,
-    });
+    let appt;
+    try {
+      appt = clinicStore.createAppointment({
+        doctorId,
+        doctorName,
+        speciality,
+        patientId,
+        patientName,
+        patientPhone,
+        date,
+        startTime,
+        reason,
+        paymentMethod: paymentMethod as PaymentMethod,
+      });
+    } catch (conflictErr: unknown) {
+      const msg = conflictErr instanceof Error ? conflictErr.message : "This slot is already booked";
+      return NextResponse.json({ ok: false, message: msg }, { status: 409 });
+    }
 
     return NextResponse.json({
       ok: true,

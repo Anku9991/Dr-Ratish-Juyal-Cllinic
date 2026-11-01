@@ -7,10 +7,10 @@ const NAV = [
   { href: "/patient", label: "Dashboard" },
   { href: "/patient/book", label: "Book Appointment" },
   { href: "/patient/reports", label: "Medical Reports" },
-  { href: "/patient/appointments", label: "My appointments" },
-  { href: "/patient/history", label: "Medical history" },
+  { href: "/patient/appointments", label: "My Appointments" },
+  { href: "/patient/history", label: "Medical History" },
   { href: "/patient/prescriptions", label: "Prescriptions" },
-  { href: "/patient/profile", label: "My profile" },
+  { href: "/patient/profile", label: "My Profile" },
 ];
 
 export default async function PatientLayout({ children }: { children: ReactNode }) {

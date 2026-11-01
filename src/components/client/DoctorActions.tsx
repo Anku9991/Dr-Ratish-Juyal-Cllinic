@@ -14,8 +14,8 @@ export function StartConsultationButton({ appointmentId, status }: { appointment
   async function start() {
     setBusy(true);
     setError(null);
-    if (status === "confirmed") {
-      const r1 = await api(`/api/doctor/appointments/${appointmentId}/status`, "POST", { status: "checked_in" });
+    if (status === "confirmed" || status === "checked_in") {
+      const r1 = await api(`/api/doctor/appointments/${appointmentId}/status`, "POST", { status: "in_consultation" });
       if (!r1.ok) {
         setBusy(false);
         return setError(r1.message);

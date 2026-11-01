@@ -1,6 +1,6 @@
 import { route } from "@/lib/api";
 import { z } from "zod";
-import { videoStore, saveClinicVideo, type ClinicVideo } from "@/lib/firebase/videos";
+import { saveClinicVideo, listClinicVideos, type ClinicVideo } from "@/lib/firebase/videos";
 
 const createVideoSchema = z.object({
   title: z.string().trim().min(3, "Title must be at least 3 characters").max(200),
@@ -24,7 +24,7 @@ const createVideoSchema = z.object({
 import { extractYoutubeId } from "@/lib/video-helpers";
 
 export const GET = route({ roles: ["admin"] }, async () => {
-  const videos = videoStore.list({ includeDrafts: true });
+  const videos = await listClinicVideos({ includeDrafts: true });
   return { videos };
 });
 

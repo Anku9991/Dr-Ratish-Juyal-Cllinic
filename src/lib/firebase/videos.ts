@@ -1,5 +1,5 @@
 import { db } from "./config";
-import { doc, setDoc, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, deleteDoc, collection, getDocs } from "firebase/firestore";
 import type { ClinicVideo, VideoCategory } from "@/types/videos";
 export type { ClinicVideo, VideoCategory };
 
@@ -130,6 +130,21 @@ export const videoStore = globalVideoStore;
 
 /** Fetch clinic videos */
 export async function listClinicVideos(options?: { includeDrafts?: boolean }): Promise<ClinicVideo[]> {
+  try {
+    const snap = await getDocs(collection(db, "clinic_videos"));
+    if (!snap.empty) {
+      for (const d of snap.docs) {
+        const item = { id: d.id, ...(d.data() as object) } as ClinicVideo;
+        if (!videoStore.getById(item.id)) {
+          videoStore.add(item);
+        } else {
+          videoStore.update(item.id, item);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Error reading videos from Firestore:", err);
+  }
   return videoStore.list(options);
 }
 

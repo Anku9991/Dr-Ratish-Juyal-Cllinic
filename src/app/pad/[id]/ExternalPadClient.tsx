@@ -36,6 +36,8 @@ export function ExternalPadClient({ appointmentId }: { appointmentId: string }) 
   const [template, setTemplate] = useState<"ruled" | "neuro" | "blank">("ruled");
 
   const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const strokesRef = useRef<Stroke[]>([]);
+  strokesRef.current = strokes;
   const [isDrawing, setIsDrawing] = useState(false);
   const currentStroke = useRef<Stroke | null>(null);
 
@@ -77,8 +79,10 @@ export function ExternalPadClient({ appointmentId }: { appointmentId: string }) 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
 
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = "#ffffff";
@@ -185,13 +189,8 @@ export function ExternalPadClient({ appointmentId }: { appointmentId: string }) 
     canvas.style.width = `${targetWidth}px`;
     canvas.style.height = `${targetHeight}px`;
 
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.scale(dpr, dpr);
-    }
-
     redrawCanvas();
-  }, [redrawCanvas]);
+  }, []);
 
   useEffect(() => {
     redrawCanvas();
@@ -268,6 +267,7 @@ export function ExternalPadClient({ appointmentId }: { appointmentId: string }) 
     setStrokes((prev) => {
       const copy = [...prev];
       copy[copy.length - 1] = { ...currentStroke.current! };
+      strokesRef.current = copy;
       return copy;
     });
   };
@@ -281,7 +281,7 @@ export function ExternalPadClient({ appointmentId }: { appointmentId: string }) 
     setIsDrawing(false);
     currentStroke.current = null;
 
-    triggerAutoSave(strokes);
+    triggerAutoSave(strokesRef.current);
   };
 
   const toggleFullscreen = () => {

@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createStaffUser } from "@/lib/admin-users";
 import { HttpError } from "@/lib/errors";
 import { audit } from "@/lib/audit";
-import { saveClinicStaff, removeClinicStaff } from "@/lib/firebase/roles";
+import { saveClinicStaff, removeClinicStaff, listClinicStaff } from "@/lib/firebase/roles";
 
 const createSchema = z.object({
   fullName: z.string().trim().min(2).max(120),
@@ -61,26 +61,35 @@ export const PUT = route(
       throw new HttpError(409, "self_lockout", "You cannot remove your own staff-management access or deactivate yourself.");
     }
 
-    // Update in Firebase Firestore
+    // 1. Update in Firebase Firestore (preserve existing role & full_name)
     try {
-      await saveClinicStaff({
-        email: userId,
-        fullName: "Staff Member",
-        role: "admin",
-        permissions,
-        isActive: isActive !== false,
-      });
+      const existingStaff = await listClinicStaff();
+      const existing = existingStaff.find(
+        (s) => s.id === userId || s.email.toLowerCase() === userId.toLowerCase()
+      );
+      if (existing) {
+        await saveClinicStaff({
+          email: existing.email,
+          fullName: existing.fullName,
+          role: existing.role,
+          doctorId: existing.doctorId,
+          permissions,
+          isActive: isActive !== undefined ? isActive : existing.isActive,
+        });
+      }
     } catch (fbErr) {
       console.warn("Firebase staff update:", fbErr);
     }
 
-    // Update in Supabase if exists
+    // 2. Update in Supabase (support matching by UUID or email)
     try {
       const admin = supabaseAdmin();
       const patch: Record<string, unknown> = { permissions };
       if (isActive !== undefined) patch.is_active = isActive;
-      const { error } = await admin.from("profiles").update(patch).eq("id", userId);
-      if (error) console.warn("Supabase staff update error:", error);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+      let q = admin.from("profiles").update(patch);
+      q = isUuid ? q.eq("id", userId) : q.eq("email", userId.toLowerCase());
+      await q;
     } catch {
       // Ignore
     }

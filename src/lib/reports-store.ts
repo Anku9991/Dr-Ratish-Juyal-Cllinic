@@ -162,16 +162,9 @@ class ReportsStore {
   }
 
   public listByPatient(patientId: string): PatientMedicalReport[] {
+    if (!patientId || patientId === "pat_guest_walkin") return [];
     return this.reports
-      .filter(
-        (r) =>
-          r.patient_id === patientId ||
-          r.patient_id.includes(patientId) ||
-          patientId.includes(r.patient_id) ||
-          patientId === "pat_guest_walkin" ||
-          patientId === "patient-user-id" ||
-          (patientId.startsWith("pat_") && r.patient_id.startsWith("patient"))
-      )
+      .filter((r) => r.patient_id === patientId)
       .map(normalizeReport);
   }
 

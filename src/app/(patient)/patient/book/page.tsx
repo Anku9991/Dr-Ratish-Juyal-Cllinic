@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requirePageRole } from "@/lib/auth";
 import { getPublicClinic, clinicDisplayName } from "@/lib/clinic";
-import { dateInTz } from "@/lib/time";
+import { dateInTz, isValidDate, isValidTime } from "@/lib/time";
 import { BookingFlow } from "@/components/client/BookingFlow";
 import { DR_RATISH_JUYAL_ID, PHYSIOTHERAPIST_ID } from "@/lib/firebase/data";
 import { PageHeader } from "@/components/ui";
@@ -170,8 +170,8 @@ export default async function PatientBookPage({
           clinicName={clinicDisplayName(clinic)}
           today={today}
           horizonDays={clinic.booking_horizon_days}
-          initialDate={params.date || null}
-          initialTime={params.time || null}
+          initialDate={params.date && isValidDate(params.date) ? params.date : null}
+          initialTime={params.time && isValidTime(params.time) ? params.time.slice(0, 5) : null}
         />
       </div>
     </div>

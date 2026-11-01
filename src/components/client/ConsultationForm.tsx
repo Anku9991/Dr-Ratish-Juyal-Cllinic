@@ -507,24 +507,35 @@ export function ConsultationForm({
             </p>
           </form>
         ) : (
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <button
-              type="button"
-              disabled={saveState === "saving"}
-              className={buttonStyles.secondary}
-              onClick={handleSubmit(saveDraft)}
-            >
-              {saveState === "saving" ? "Saving..." : "Save Draft"}
-            </button>
-            <button
-              type="button"
-              disabled={finalizing || !canFinalize}
-              className={buttonStyles.primary}
-              onClick={handleSubmit(finalize)}
-            >
-              {finalizing ? "Issuing..." : "Finalize & Issue Prescription"}
-            </button>
-            {saveState === "saved" ? <span className="text-xs font-bold text-emerald-700">✓ Draft saved</span> : null}
+          <div className="space-y-4 pt-2">
+            {saveError ? <Alert tone="danger">{saveError}</Alert> : null}
+            {!canFinalize ? (
+              <Alert tone="info">
+                Write notes on the digital pad or switch to Structured Form to add diagnosis and medicines before finalizing.
+              </Alert>
+            ) : null}
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                disabled={saveState === "saving"}
+                className={buttonStyles.secondary}
+                onClick={handleSubmit(saveDraft)}
+              >
+                {saveState === "saving" ? "Saving..." : "Save Draft"}
+              </button>
+              <button
+                type="button"
+                disabled={finalizing || !canFinalize}
+                className={buttonStyles.primary}
+                onClick={handleSubmit(finalize)}
+              >
+                {finalizing ? "Issuing..." : "Finalize & Issue Prescription"}
+              </button>
+              {saveState === "saved" ? <span className="text-xs font-bold text-emerald-700">✓ Draft saved</span> : null}
+            </div>
+            <p className="text-xs text-muted">
+              Finalizing locks this consultation, issues an official PDF prescription with digital signature, and completes the appointment ({appointmentStatus.replace("_", " ")}).
+            </p>
           </div>
         )}
       </div>

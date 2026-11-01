@@ -7,8 +7,8 @@ export const metadata: Metadata = { title: "Digital Prescription Pad" };
 
 export default async function DoctorPadWorkspacePage() {
   const user = await requirePageRole("doctor");
-  await requireDoctorId(user);
-  const demoAppointmentId = "live-pad-workspace";
+  const doctorId = await requireDoctorId(user);
+  const demoAppointmentId = `workspace-${doctorId}`;
 
   return (
     <div className="space-y-6">

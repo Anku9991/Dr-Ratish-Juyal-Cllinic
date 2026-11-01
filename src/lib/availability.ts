@@ -6,6 +6,7 @@ import { HttpError } from "./errors";
 import { CLINIC_SCHEDULES, PHYSIOTHERAPIST_ID } from "./firebase/data";
 import { db } from "./firebase/config";
 import { collection, query, where, getDocs, type DocumentSnapshot } from "firebase/firestore";
+import { clinicStore } from "./appointments-store";
 
 export interface SlotsResponse {
   date: string;
@@ -41,8 +42,13 @@ export async function getSlotsForDoctor(doctorId: string, date: string, now: Dat
     }));
   }
 
-  // Fetch unavailable slots from Firebase appointments
+  // Fetch unavailable slots from clinicStore and Firebase appointments
   const unavailable = new Set<string>();
+  for (const appt of clinicStore.listForDoctor(doctorId, date)) {
+    if (!["cancelled", "expired"].includes(appt.status)) {
+      unavailable.add(hhmm(appt.start_time));
+    }
+  }
   try {
     const q = query(
       collection(db, "appointments"),

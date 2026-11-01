@@ -35,7 +35,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
   try {
     let q = supabaseAdmin()
       .from("payments")
-      .select("id, receipt_number, amount, status, refunded_amount, refund_required, created_at, verified_at, appointments!inner(appointment_number, patients!inner(patient_code, profiles!inner(full_name))))")
+      .select("id, receipt_number, amount, status, refunded_amount, refund_required, created_at, verified_at, appointments!inner(appointment_number, patients!inner(patient_code, profiles!inner(full_name)))")
       .order("created_at", { ascending: false })
       .limit(100);
     if (filter === "refund_due") q = q.eq("refund_required", true);
@@ -70,10 +70,10 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
               <tr key={p.id}>
                 <td className={td}>{p.receipt_number}</td>
                 <td className={td}>
-                  {p.appointments.patients.profiles.full_name}
-                  <span className="block text-xs text-muted">{p.appointments.patients.patient_code}</span>
+                  {p.appointments?.patients?.profiles?.full_name ?? "Patient"}
+                  <span className="block text-xs text-muted">{p.appointments?.patients?.patient_code ?? ""}</span>
                 </td>
-                <td className={td}>{p.appointments.appointment_number}</td>
+                <td className={td}>{p.appointments?.appointment_number ?? "-"}</td>
                 <td className={td}>
                   {formatINR(p.amount)}
                   {p.refunded_amount ? <span className="block text-xs text-muted">Refunded {formatINR(p.refunded_amount)}</span> : null}
@@ -83,7 +83,13 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
                   {p.refund_required ? <span className="mt-1 block text-xs font-medium text-red-600">Refund due</span> : null}
                 </td>
                 <td className={`${td} whitespace-nowrap`}>{formatInstant(p.created_at, settings.timezone)}</td>
-                <td className={td}>{["captured", "partially_refunded"].includes(p.status) && p.amount > p.refunded_amount ? <RefundForm paymentId={p.id} maxRupees={paiseToRupees(p.amount - p.refunded_amount)} /> : "-"}</td>
+                <td className={td}>
+                  {!p.id.startsWith("pay-") && ["captured", "partially_refunded"].includes(p.status) && p.amount > p.refunded_amount ? (
+                    <RefundForm paymentId={p.id} maxRupees={paiseToRupees(p.amount - p.refunded_amount)} />
+                  ) : (
+                    "-"
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

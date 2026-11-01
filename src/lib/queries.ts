@@ -23,7 +23,11 @@ export async function listPatientAppointments(patientId: string): Promise<ApptWi
   try {
     const { data } = await supabaseAdmin().from("appointments").select(APPT_SELECT).eq("patient_id", patientId).order("starts_at", { ascending: false }).limit(200);
     const dbAppts = (data ?? []) as unknown as ApptWithDoctor[];
-    return [...local, ...dbAppts];
+    const map = new Map<string, ApptWithDoctor>();
+    for (const item of [...local, ...dbAppts]) {
+      map.set(item.id, item);
+    }
+    return Array.from(map.values());
   } catch {
     return local;
   }
@@ -33,6 +37,7 @@ export async function listPatientAppointments(patientId: string): Promise<ApptWi
 export async function getPatientAppointment(id: string, patientId: string): Promise<ApptWithDoctor | null> {
   const local = clinicStore.getById(id);
   if (local) {
+    if (local.patient_id !== patientId) return null;
     return toApptWithDoctor(local);
   }
 

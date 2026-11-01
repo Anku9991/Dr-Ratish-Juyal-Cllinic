@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { requiredRoleForPath, ROLE_HOME } from "../permissions";
+import { requiredRoleForPath, ROLE_HOME, type Role } from "../permissions";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "../auth-session";
 
 /** Refreshes the auth session cookie and sends signed-out visitors away from protected areas. */
@@ -49,7 +49,13 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       } = await supabase.auth.getUser();
 
       if (user) {
-        return response;
+        const userRole = (user.app_metadata?.role || user.user_metadata?.role || "patient") as Role;
+        if (userRole === requiredRole) {
+          return response;
+        }
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = ROLE_HOME[userRole] || "/login";
+        return NextResponse.redirect(redirectUrl);
       }
     } catch {
       // Ignore supabase error

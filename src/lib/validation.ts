@@ -197,7 +197,7 @@ export const clinicSettingsSchema = z.object({
 });
 
 export const staffPermissionsSchema = z.object({
-  userId: uuid,
+  userId: z.string().trim().min(1, "User ID is required").max(255),
   permissions: z.array(z.enum(ADMIN_PERMISSIONS)).max(ADMIN_PERMISSIONS.length),
   isActive: z.boolean().optional(),
 });

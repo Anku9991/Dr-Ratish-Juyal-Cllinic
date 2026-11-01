@@ -3,10 +3,20 @@
 import { ApiButton } from "./ApiButton";
 import type { AppointmentStatus } from "@/lib/status";
 
-const NEXT: Partial<Record<AppointmentStatus, Array<{ to: AppointmentStatus; label: string; danger?: boolean }>>> = {
-  confirmed: [{ to: "checked_in", label: "Check in" }, { to: "cancelled", label: "Cancel", danger: true }],
-  checked_in: [{ to: "in_consultation", label: "Start consultation" }, { to: "cancelled", label: "Cancel", danger: true }],
-  pending_payment: [{ to: "cancelled", label: "Cancel", danger: true }],
+const NEXT: Partial<Record<AppointmentStatus, Array<{ to: AppointmentStatus; label: string; danger?: boolean; confirm?: string }>>> = {
+  confirmed: [
+    { to: "checked_in", label: "Check in" },
+    { to: "no_show", label: "No show", danger: true, confirm: "Mark this patient as No Show?" },
+    { to: "cancelled", label: "Cancel", danger: true, confirm: "Are you sure you want to cancel this appointment?" },
+  ],
+  checked_in: [
+    { to: "in_consultation", label: "Start consultation" },
+    { to: "no_show", label: "No show", danger: true, confirm: "Mark this patient as No Show?" },
+    { to: "cancelled", label: "Cancel", danger: true, confirm: "Are you sure you want to cancel this appointment?" },
+  ],
+  pending_payment: [
+    { to: "cancelled", label: "Cancel", danger: true, confirm: "Are you sure you want to cancel this appointment?" },
+  ],
 };
 
 export function AdminStatusControls({ appointmentId, status }: { appointmentId: string; status: AppointmentStatus }) {
@@ -20,7 +30,7 @@ export function AdminStatusControls({ appointmentId, status }: { appointmentId: 
           url={`/api/admin/appointments/${appointmentId}/status`}
           body={{ status: o.to }}
           variant={o.danger ? "danger" : "secondary"}
-          confirm={o.danger ? "Are you sure you want to cancel this appointment?" : undefined}
+          confirm={o.confirm}
         >
           {o.label}
         </ApiButton>

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { requirePageRole } from "@/lib/auth";
 import { getClinicSettings } from "@/lib/clinic";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { addDays, dateInTz, formatDateLong } from "@/lib/time";
 import { formatINR } from "@/lib/money";
 import { Card, PageHeader, TableWrap, td, th } from "@/components/ui";
+import { clinicStore } from "@/lib/appointments-store";
 
 export const metadata: Metadata = { title: "Reports" };
 
@@ -16,17 +17,42 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const rangeFrom = from || addDays(today, -29);
   const rangeTo = to || today;
 
-  const admin = supabaseAdmin();
-  const [{ data: appts }, { data: payments }, { data: byDoctor }] = await Promise.all([
-    admin.from("appointments").select("status").gte("appointment_date", rangeFrom).lte("appointment_date", rangeTo),
-    admin.from("payments").select("amount, status, refunded_amount").gte("created_at", `${rangeFrom}T00:00:00Z`).lt("created_at", `${addDays(rangeTo, 1)}T00:00:00Z`),
-    admin
-      .from("appointments")
-      .select("doctor_id, status, doctors!inner(speciality, profiles!inner(full_name))")
-      .gte("appointment_date", rangeFrom)
-      .lte("appointment_date", rangeTo)
-      .in("status", ["completed", "confirmed", "checked_in", "in_consultation"]),
-  ]);
+  let appts: Array<{ status: string }> = [];
+  let payments: Array<{ amount: number; status: string; refunded_amount: number | null }> = [];
+  let byDoctor: unknown[] = [];
+
+  if (isSupabaseConfigured()) {
+    try {
+      const admin = supabaseAdmin();
+      const [resAppts, resPayments, resByDoc] = await Promise.all([
+        admin.from("appointments").select("status").gte("appointment_date", rangeFrom).lte("appointment_date", rangeTo),
+        admin.from("payments").select("amount, status, refunded_amount").gte("created_at", `${rangeFrom}T00:00:00Z`).lt("created_at", `${addDays(rangeTo, 1)}T00:00:00Z`),
+        admin
+          .from("appointments")
+          .select("doctor_id, status, doctors!inner(speciality, profiles!inner(full_name))")
+          .gte("appointment_date", rangeFrom)
+          .lte("appointment_date", rangeTo)
+          .in("status", ["completed", "confirmed", "checked_in", "in_consultation"]),
+      ]);
+      if (resAppts.data) appts = resAppts.data as typeof appts;
+      if (resPayments.data) payments = resPayments.data as typeof payments;
+      if (resByDoc.data) byDoctor = resByDoc.data;
+    } catch {
+      // offline fallback
+    }
+  }
+
+  // Also include in-memory clinicStore appointments
+  for (const a of clinicStore.listAll()) {
+    if (a.appointment_date >= rangeFrom && a.appointment_date <= rangeTo) {
+      appts.push({ status: a.status });
+      payments.push({
+        amount: a.consultation_fee * 100,
+        status: a.payment_status === "captured" ? "captured" : "pending",
+        refunded_amount: 0,
+      });
+    }
+  }
 
   const apptCounts = new Map<string, number>();
   for (const a of appts ?? []) apptCounts.set(a.status as string, (apptCounts.get(a.status as string) ?? 0) + 1);
@@ -102,7 +128,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             </thead>
             <tbody>
               {doctorRows.map((d) => (
-                <tr key={d.name}>
+                <tr key={`${d.name}-${d.speciality}`}>
                   <td className={td}>{d.name}</td>
                   <td className={td}>{d.speciality}</td>
                   <td className={td}>{d.count}</td>

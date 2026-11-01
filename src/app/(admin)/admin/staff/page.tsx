@@ -5,10 +5,16 @@ import { PageHeader } from "@/components/ui";
 import { StaffManager, type StaffRow } from "@/components/client/StaffManager";
 import { listClinicStaff } from "@/lib/firebase/roles";
 
+import { redirect } from "next/navigation";
+import { hasPermission } from "@/lib/permissions";
+
 export const metadata: Metadata = { title: "Staff & Doctors Management" };
 
 export default async function StaffPage() {
   const user = await requirePageRole("admin");
+  if (!hasPermission(user.role, user.permissions, "manage_staff")) {
+    redirect("/admin");
+  }
 
   // Load from Firebase Firestore
   const firebaseStaff = await listClinicStaff();

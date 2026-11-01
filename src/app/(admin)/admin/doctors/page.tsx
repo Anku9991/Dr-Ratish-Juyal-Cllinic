@@ -1,16 +1,36 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { requirePageRole } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { formatRupees } from "@/lib/money";
 import { Badge, EmptyState, LinkButton, PageHeader, TableWrap, td, th } from "@/components/ui";
+import { CLINIC_DOCTORS } from "@/lib/firebase/data";
 
 export const metadata: Metadata = { title: "Doctors" };
 
 export default async function AdminDoctorsPage() {
   await requirePageRole("admin");
-  const { data } = await supabaseAdmin().from("doctors").select("id, doctor_code, speciality, consultation_fee, is_active, profiles!inner(full_name)").order("created_at", { ascending: false });
-  const rows = (data ?? []) as unknown as Array<{ id: string; doctor_code: string; speciality: string; consultation_fee: number; is_active: boolean; profiles: { full_name: string } }>;
+  let rows: Array<{ id: string; doctor_code: string; speciality: string; consultation_fee: number; is_active: boolean; profiles: { full_name: string } }> = [];
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { data } = await supabaseAdmin().from("doctors").select("id, doctor_code, speciality, consultation_fee, is_active, profiles!inner(full_name)").order("created_at", { ascending: false });
+      if (data) rows = data as unknown as typeof rows;
+    } catch {
+      // offline fallback
+    }
+  }
+
+  if (rows.length === 0) {
+    rows = CLINIC_DOCTORS.map((d) => ({
+      id: d.id,
+      doctor_code: d.doctor_code,
+      speciality: d.speciality,
+      consultation_fee: Number(d.consultation_fee),
+      is_active: true,
+      profiles: { full_name: d.full_name },
+    }));
+  }
   return (
     <div>
       <PageHeader title="Doctors" actions={<LinkButton href="/admin/doctors/new">Add doctor</LinkButton>} />

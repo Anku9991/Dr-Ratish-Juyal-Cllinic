@@ -1,4 +1,5 @@
 import type { Role } from "./status";
+export type { Role };
 
 export const ROLE_HOME: Record<Role, string> = {
   patient: "/patient",
@@ -9,6 +10,7 @@ export const ROLE_HOME: Record<Role, string> = {
 const PREFIX_ROLE: Array<[string, Role]> = [
   ["/patient", "patient"],
   ["/doctor", "doctor"],
+  ["/pad", "doctor"],
   ["/admin", "admin"],
 ];
 

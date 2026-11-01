@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { RegisterForm } from "@/components/client/AuthForms";
 import { Card } from "@/components/ui";
@@ -15,7 +16,9 @@ export default async function RegisterPage() {
       <h1 className="mb-1 text-2xl font-bold text-ink">Patient & Clinic Sign In</h1>
       <p className="mb-5 text-sm text-muted">Use 1-click Quick PIN access or enter your mobile number.</p>
       <Card>
-        <RegisterForm />
+        <Suspense fallback={<div className="p-4 text-center text-sm text-muted">Loading sign in...</div>}>
+          <RegisterForm />
+        </Suspense>
       </Card>
     </div>
   );

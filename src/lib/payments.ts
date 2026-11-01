@@ -110,6 +110,9 @@ export async function verifyCheckoutPayment(
     p_payment_id: input.paymentId,
     p_method: remote.method ?? null,
   });
+  if (result === "slot_lost" || result === "appointment_cancelled") {
+    await db.flagRefundRequired(payment.id);
+  }
   return { result, appointmentId: payment.appointment_id };
 }
 

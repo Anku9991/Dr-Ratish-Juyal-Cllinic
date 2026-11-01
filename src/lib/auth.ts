@@ -97,22 +97,22 @@ export async function getPatientId(userId: string): Promise<string | null> {
 export async function getDoctorId(userId: string): Promise<string | null> {
   if (userId === PHYSIOTHERAPIST_ID) return PHYSIOTHERAPIST_ID;
   if (userId === DR_RATISH_JUYAL_ID) return DR_RATISH_JUYAL_ID;
-  if (!isSupabaseConfigured()) return DR_RATISH_JUYAL_ID;
 
-  try {
-    const { data } = await supabaseAdmin()
-      .from("doctors")
-      .select("id")
-      .eq("profile_id", userId)
-      .eq("is_active", true)
-      .maybeSingle();
-    if (data?.id) return data.id as string;
-  } catch {
-    // Supabase optional
+  if (isSupabaseConfigured()) {
+    try {
+      const { data } = await supabaseAdmin()
+        .from("doctors")
+        .select("id")
+        .eq("profile_id", userId)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (data?.id) return data.id as string;
+    } catch {
+      // Supabase optional
+    }
   }
 
-  // Default to Dr. Ratish Juyal for doctors
-  return DR_RATISH_JUYAL_ID;
+  return null;
 }
 
 export async function requirePatientId(user: SessionUser): Promise<string> {

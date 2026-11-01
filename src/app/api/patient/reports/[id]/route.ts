@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, getPatientId } from "@/lib/auth";
 import { reportsStore } from "@/lib/reports-store";
 
 export async function DELETE(
@@ -20,7 +20,10 @@ export async function DELETE(
     }
 
     // Role check: patients can only delete their own reports, admins can delete any
-    if (user.role === "patient" && report.patient_id !== user.id && !report.patient_id.includes(user.id)) {
+    const patientId = user.role === "patient" ? ((await getPatientId(user.id)) || user.id) : null;
+    const isOwner = user.role === "patient" && (report.patient_id === user.id || report.patient_id === patientId);
+    const isAdmin = user.role === "admin";
+    if (!isOwner && !isAdmin) {
       return NextResponse.json({ ok: false, message: "Permission denied" }, { status: 403 });
     }
 

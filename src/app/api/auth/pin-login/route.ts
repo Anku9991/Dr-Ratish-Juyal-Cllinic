@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { pin, selectedRole, patientName, patientMobile, next } = parsed.data;
+    const { pin, selectedRole: _selectedRole, patientName, patientMobile, next } = parsed.data;
 
     let role: "doctor" | "admin" | "patient" = "patient";
     let id = "patient-guest-id";
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     let permissions: string[] = [];
 
     // Check PIN mappings
-    if (pin === "1234" || (selectedRole === "doctor" && pin === "1234")) {
+    if (pin === "1234") {
       // Dr. Ratish Juyal (Doctor Portal)
       role = "doctor";
       id = DR_RATISH_JUYAL_ID;
@@ -47,14 +47,14 @@ export async function POST(req: NextRequest) {
       fullName = "Dr. Amit K. Sharma (PT)";
       email = "physio.sharma@gmail.com";
       permissions = ["consultation", "medical_records"];
-    } else if (pin === "2345" || pin === "9999" || selectedRole === "admin") {
+    } else if (pin === "2345" || pin === "9999") {
       // Staff / Receptionist / Admin Portal
       role = "admin";
       id = "staff-receptionist-id";
       fullName = "Clinic Reception & Staff";
       email = "reception@drratishjuyal.com";
       permissions = ["manage_staff", "medical_records"];
-    } else if (pin === "3456" || pin === "1111" || selectedRole === "patient") {
+    } else if (pin === "3456" || pin === "1111") {
       // Patient Portal
       role = "patient";
       id = patientMobile ? `pat_${patientMobile}` : "patient-user-id";
@@ -62,12 +62,10 @@ export async function POST(req: NextRequest) {
       email = patientMobile ? `patient_${patientMobile}@clinic.local` : "patient@clinic.local";
       permissions = [];
     } else {
-      // Any other PIN defaults to patient or checks length
-      role = "patient";
-      id = `pat_${pin}`;
-      fullName = patientName?.trim() || `Patient (${pin})`;
-      email = `patient_${pin}@clinic.local`;
-      permissions = [];
+      return NextResponse.json(
+        { ok: false, message: "Invalid PIN. Use Doctor PIN (1234/1235), Staff PIN (2345), or Patient PIN (3456)." },
+        { status: 401 }
+      );
     }
 
     // Create session token
@@ -97,7 +95,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: 7 * 24 * 60 * 60, // 7 days (matches token exp)
     });
 
     return response;

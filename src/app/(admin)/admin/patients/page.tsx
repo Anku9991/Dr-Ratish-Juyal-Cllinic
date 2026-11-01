@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { requirePageRole } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { supabaseAdmin, isSupabaseConfigured } from "@/lib/supabase/admin";
 import { EmptyState, PageHeader, TableWrap, td, th } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Patients" };
@@ -9,15 +9,27 @@ export const metadata: Metadata = { title: "Patients" };
 export default async function AdminPatientsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   await requirePageRole("admin");
-  let query = supabaseAdmin().from("patients").select("id, patient_code, profiles!inner(full_name, mobile, email, is_active)").order("created_at", { ascending: false }).limit(100);
-  if (q?.trim()) query = query.or(`patient_code.ilike.%${q.trim()}%`);
-  const { data } = await query;
-  const rows = (data ?? []) as unknown as Array<{ id: string; patient_code: string; profiles: { full_name: string; mobile: string | null; email: string | null; is_active: boolean } }>;
+  let rows: Array<{ id: string; patient_code: string; profiles: { full_name: string; mobile: string | null; email: string | null; is_active: boolean } }> = [];
+
+  if (isSupabaseConfigured()) {
+    try {
+      let query = supabaseAdmin().from("patients").select("id, patient_code, profiles!inner(full_name, mobile, email, is_active)").order("created_at", { ascending: false }).limit(100);
+      const term = q?.trim().replace(/[,()]/g, "");
+      if (term) {
+        query = query.or(`patient_code.ilike.%${term}%,profiles.full_name.ilike.%${term}%,profiles.mobile.ilike.%${term}%`);
+      }
+      const { data } = await query;
+      if (data) rows = data as unknown as typeof rows;
+    } catch {
+      // offline fallback
+    }
+  }
+
   return (
     <div>
       <PageHeader title="Patients" />
       <form method="get" className="mb-4 flex gap-2">
-        <input name="q" defaultValue={q ?? ""} placeholder="Search by patient ID" className="w-full max-w-xs rounded-lg border border-line bg-white px-3 py-2 text-sm sm:w-auto" />
+        <input name="q" defaultValue={q ?? ""} placeholder="Search by name, ID or mobile" className="w-full max-w-xs rounded-lg border border-line bg-white px-3 py-2 text-sm sm:w-auto" />
         <button className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-medium hover:bg-slate-50">Search</button>
       </form>
       {rows.length === 0 ? (

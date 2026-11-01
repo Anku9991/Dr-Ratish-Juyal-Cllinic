@@ -17,7 +17,7 @@ export default async function AdminAppointmentsPage({ searchParams }: { searchPa
   await requirePageRole("admin");
   const settings = await getClinicSettings();
   const today = dateInTz(new Date(), settings.timezone);
-  const filterDate = date ?? today;
+  const filterDate = date?.trim() ? date.trim() : today;
 
   const localRows = clinicStore.listAll(filterDate, status).map((a) => ({
     id: a.id,

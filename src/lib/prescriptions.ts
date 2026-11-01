@@ -27,8 +27,9 @@ export async function loadPrescriptionBundle(prescriptionId: string) {
     admin.from("patients").select("*, profiles!inner(full_name)").eq("id", prescription.patient_id).single(),
     getClinicSettings(),
   ]);
-  const c = consultation as ConsultationRow;
-  const { data: appt } = await admin.from("appointments").select("appointment_number").eq("id", c.appointment_id).single();
+  const c = consultation as ConsultationRow | null;
+  if (!c) return null;
+  const { data: appt } = await admin.from("appointments").select("appointment_number").eq("id", c.appointment_id).maybeSingle();
   return {
     prescription,
     consultation: c,
@@ -38,6 +39,22 @@ export async function loadPrescriptionBundle(prescriptionId: string) {
     appointmentNumber: (appt?.appointment_number as string | undefined) ?? "",
     settings,
   };
+}
+
+function parseDataUrlImage(dataUrl: string | null | undefined): PdfImageInput | null {
+  if (!dataUrl || !dataUrl.startsWith("data:image/")) return null;
+  try {
+    const parts = dataUrl.split(",");
+    if (parts.length < 2) return null;
+    const meta = parts[0];
+    const base64 = parts[1];
+    if (!meta || !base64) return null;
+    const kind: "png" | "jpg" = meta.includes("jpeg") || meta.includes("jpg") ? "jpg" : "png";
+    const buffer = Buffer.from(base64, "base64");
+    return { bytes: new Uint8Array(buffer), kind };
+  } catch {
+    return null;
+  }
 }
 
 function nameOf(p: { full_name: string } | { full_name: string }[]): string {
@@ -59,6 +76,26 @@ export async function buildPdfData(prescriptionId: string): Promise<Prescription
   ]);
   const tz = b.settings.timezone;
   const c = b.consultation;
+
+  let handwrittenPad: PdfImageInput | null = null;
+  try {
+    const { db: firestore } = await import("./firebase/config");
+    const { doc, getDoc } = await import("firebase/firestore");
+    const rxSnap = await getDoc(doc(firestore, "prescriptions", prescriptionId));
+    const padDrawing = rxSnap.exists() ? (rxSnap.data()?.padDrawing as string | null) : null;
+    if (padDrawing) {
+      handwrittenPad = parseDataUrlImage(padDrawing);
+    } else if (c?.appointment_id) {
+      const padSnap = await getDoc(doc(firestore, "prescription_pads", c.appointment_id));
+      const imageData = padSnap.exists() ? (padSnap.data()?.imageData as string | null) : null;
+      if (imageData) {
+        handwrittenPad = parseDataUrlImage(imageData);
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to load handwritten pad for PDF:", err);
+  }
+
   return {
     clinic: {
       name: b.settings.clinic_name ?? "",
@@ -110,6 +147,7 @@ export async function buildPdfData(prescriptionId: string): Promise<Prescription
       instructions: m.instructions,
     })),
     advice: c.advice,
+    handwrittenPad,
     followUpDate: c.follow_up_date ? formatDateLong(c.follow_up_date) : null,
   };
 }

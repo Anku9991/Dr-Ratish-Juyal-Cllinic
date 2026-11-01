@@ -2,7 +2,7 @@
 
 import { buttonStyles } from "@/components/ui";
 
-export default function PatientError({ reset }: { error: Error; reset: () => void }) {
+export default function AdminError({ reset }: { error: Error; reset: () => void }) {
   return (
     <div className="rounded-[14px] border border-line bg-white p-8 text-center">
       <h1 className="text-lg font-semibold">We could not load this page</h1>

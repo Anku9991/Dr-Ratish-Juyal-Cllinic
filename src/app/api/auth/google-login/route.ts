@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase/config";
 import { doc, setDoc } from "firebase/firestore";
 
 const googleLoginSchema = z.object({
+  idToken: z.string().optional(),
   uid: z.string().min(1),
   email: z.string().email(),
   displayName: z.string().nullable().optional(),
@@ -26,7 +27,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { uid, email, displayName, photoURL, next } = parsed.data;
+    const { displayName, photoURL, next, idToken } = parsed.data;
+    let { uid, email } = parsed.data;
+
+    // Verify Google ID token if provided
+    if (idToken) {
+      try {
+        const verifyRes = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
+        );
+        if (verifyRes.ok) {
+          const tokenInfo = await verifyRes.json();
+          if (tokenInfo.email) {
+            email = tokenInfo.email;
+          }
+          if (tokenInfo.sub || tokenInfo.user_id) {
+            uid = tokenInfo.sub || tokenInfo.user_id;
+          }
+        }
+      } catch {
+        // Fall back to client data if token verification endpoint is unavailable
+      }
+    }
 
     // 1. Resolve role from Firestore staff list or default
     const { role, permissions } = await resolveUserRole(email);

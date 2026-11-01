@@ -11,8 +11,9 @@ export interface SessionPayload {
 
 const SESSION_SECRET =
   process.env.SESSION_SECRET ||
-  process.env.CRON_SECRET ||
-  "dr-ratish-juyal-clinic-secure-session-key-2026";
+  (process.env.NODE_ENV === "production"
+    ? (() => { throw new Error("CRITICAL: SESSION_SECRET must be set in production"); })()
+    : "dr-ratish-juyal-clinic-dev-secret-key-38947298347");
 
 export const SESSION_COOKIE_NAME = "clinic_session";
 

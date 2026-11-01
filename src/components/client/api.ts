@@ -4,10 +4,11 @@ export type ApiResult<T> =
 
 export async function api<T = Record<string, unknown>>(url: string, method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", body?: unknown): Promise<ApiResult<T>> {
   try {
+    const hasBody = body !== undefined && method !== "GET";
     const res = await fetch(url, {
       method,
-      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+      body: hasBody ? JSON.stringify(body) : undefined,
       cache: "no-store",
     });
     const json = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string; details?: unknown } } & T;

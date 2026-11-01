@@ -42,8 +42,8 @@ export default async function PrescriptionsPage() {
                   </Link>
                 </td>
                 <td className={td}>
-                  {r.doctors.profiles.full_name}
-                  <span className="block text-xs text-muted">{r.doctors.speciality}</span>
+                  {Array.isArray(r.doctors?.profiles) ? r.doctors.profiles[0]?.full_name : r.doctors?.profiles?.full_name ?? "Doctor"}
+                  <span className="block text-xs text-muted">{r.doctors?.speciality}</span>
                 </td>
                 <td className={`${td} whitespace-nowrap`}>{formatInstant(r.issued_at, settings.timezone)}</td>
               </tr>

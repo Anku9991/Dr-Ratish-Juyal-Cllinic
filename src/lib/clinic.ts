@@ -6,13 +6,27 @@ import {
   getFirebaseDoctor as getFbDoc,
 } from "./firebase/data";
 
+import { supabaseAdmin, isSupabaseConfigured } from "./supabase/admin";
+
 /** Public-safe clinic info */
 export async function getPublicClinic(): Promise<ClinicSettings> {
-  return getFirebaseClinicSettings();
+  return getClinicSettings();
 }
 
 /** Full settings row (server side only). */
 export async function getClinicSettings(): Promise<ClinicSettings> {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data } = await supabaseAdmin()
+        .from("clinic_settings")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle();
+      if (data) return data as ClinicSettings;
+    } catch {
+      // Fall through to Firebase
+    }
+  }
   return getFirebaseClinicSettings();
 }
 

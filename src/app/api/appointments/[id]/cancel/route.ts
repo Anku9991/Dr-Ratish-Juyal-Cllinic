@@ -3,6 +3,7 @@ import { cancelSchema } from "@/lib/validation";
 import { bookingDeps } from "@/lib/deps";
 import { cancelAppointment } from "@/lib/payments";
 import { getClinicSettings } from "@/lib/clinic";
+import { HttpError } from "@/lib/errors";
 
 import { clinicStore } from "@/lib/appointments-store";
 
@@ -15,6 +16,9 @@ export const POST = route(
     // Check clinicStore first
     const local = clinicStore.getById(apptId);
     if (local) {
+      if (local.patient_id !== patientId && local.patient_id !== ctx.user?.id) {
+        throw new HttpError(403, "forbidden", "You cannot cancel another patient's appointment.");
+      }
       clinicStore.cancel(apptId, ctx.body.reason || "Cancelled by patient");
       return { refund: local.payment_method === "cash" ? "none" : "refunded" };
     }

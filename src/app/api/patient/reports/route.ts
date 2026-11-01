@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, getPatientId } from "@/lib/auth";
 import { reportsStore, type ReportCategory } from "@/lib/reports-store";
 import { DR_RATISH_JUYAL_ID } from "@/lib/firebase/data";
 
@@ -38,11 +38,15 @@ const uploadSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Unauthorized. Please sign in." }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const targetPatientId = searchParams.get("patientId");
 
     // If doctor/staff requests reports for a patient
-    if (user?.role === "doctor" || user?.role === "admin") {
+    if (user.role === "doctor" || user.role === "admin") {
       if (targetPatientId) {
         return NextResponse.json({
           ok: true,
@@ -56,7 +60,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Patient requests their own reports
-    const patientId = user?.id || "pat_guest_walkin";
+    const patientId = (await getPatientId(user.id)) || user.id;
     return NextResponse.json({
       ok: true,
       data: reportsStore.listByPatient(patientId),
@@ -70,6 +74,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Unauthorized. Please sign in." }, { status: 401 });
+    }
+
     const raw = await req.json();
     const parsed = uploadSchema.safeParse(raw);
 
@@ -80,8 +88,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const patientId = user?.id || "pat_guest_walkin";
-    const patientName = user?.fullName || "Clinic Patient";
+    const patientId = (await getPatientId(user.id)) || user.id;
+    const patientName = user.fullName || "Clinic Patient";
     const uhid = `UHID-${patientId.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase() || "1001"}`;
 
     const report = reportsStore.addReport({

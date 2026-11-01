@@ -16,11 +16,19 @@ const NAV = [
   { href: "/admin/audit-logs", label: "Audit logs" },
 ];
 
+import { hasPermission } from "@/lib/permissions";
+
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await requirePageRole("admin");
   const clinic = await getPublicClinic();
+  const nav = NAV.filter((item) => {
+    if (item.href === "/admin/staff" || item.href === "/admin/audit-logs") {
+      return hasPermission(user.role, user.permissions, "manage_staff");
+    }
+    return true;
+  });
   return (
-    <AppShell clinicName={clinicDisplayName(clinic)} roleLabel="Admin" userName={user.fullName} nav={NAV}>
+    <AppShell clinicName={clinicDisplayName(clinic)} roleLabel="Admin" userName={user.fullName} nav={nav}>
       {children}
     </AppShell>
   );

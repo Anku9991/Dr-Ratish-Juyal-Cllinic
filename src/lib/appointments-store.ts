@@ -123,7 +123,19 @@ class ClinicStore {
     startTime: string;
     reason?: string | null;
     paymentMethod: PaymentMethod;
-  }): ClinicAppointment {
+  }) {
+    // Check for double booking collision
+    const conflict = this.appointments.find(
+      (a) =>
+        a.doctor_id === input.doctorId &&
+        a.appointment_date === input.date &&
+        a.start_time === input.startTime &&
+        !["cancelled", "expired"].includes(a.status)
+    );
+    if (conflict) {
+      throw new Error("This slot has already been booked. Please choose another time.");
+    }
+
     const isNeuro = input.doctorId === DR_RATISH_JUYAL_ID;
     const docName = input.doctorName || (isNeuro ? "Dr. Ratish Juyal" : "Dr. Amit K. Sharma (PT)");
     const spec = input.speciality || (isNeuro ? "Senior Consultant Neurologist" : "Consultant Neuro-Physiotherapist");
@@ -134,7 +146,7 @@ class ClinicStore {
     const duration = isNeuro ? 20 : 30;
     const [h, m] = input.startTime.split(":").map(Number);
     const endMinutes = (m || 0) + duration;
-    const endH = (h || 12) + Math.floor(endMinutes / 60);
+    const endH = (h ?? 12) + Math.floor(endMinutes / 60);
     const endM = endMinutes % 60;
     const endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
 
@@ -177,9 +189,7 @@ class ClinicStore {
   }
 
   public listForPatient(patientId: string): ClinicAppointment[] {
-    return this.appointments.filter(
-      (a) => a.patient_id === patientId || a.patient_id.includes(patientId) || patientId.includes(a.patient_id)
-    );
+    return this.appointments.filter((a) => a.patient_id === patientId);
   }
 
   public listForDoctor(doctorId: string, date?: string): ClinicAppointment[] {

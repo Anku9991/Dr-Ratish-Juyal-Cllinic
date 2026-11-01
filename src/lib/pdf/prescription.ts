@@ -56,6 +56,7 @@ export interface PrescriptionPdfData {
     instructions?: string | null;
   }>;
   advice?: string | null;
+  handwrittenPad?: PdfImageInput | null;
   followUpDate?: string | null; // formatted
 }
 
@@ -72,9 +73,18 @@ type Fonts = { regular: PDFFont; bold: PDFFont };
 /** Standard PDF fonts only encode WinAnsi; anything else becomes "?" instead of crashing the render. */
 function clean(text: string | number | null | undefined, font: PDFFont): string {
   if (text === null || text === undefined) return "";
+  const normalized = String(text)
+    .replace(/₹/g, "Rs. ")
+    .replace(/[•●]/g, "- ")
+    .replace(/°/g, " deg ")
+    .replace(/[–—]/g, "-")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\t/g, "  ");
   const supported = new Set(font.getCharacterSet());
   let out = "";
-  for (const ch of String(text).replace(/\r\n?/g, "\n").replace(/\t/g, "  ")) {
+  for (const ch of normalized) {
     const cp = ch.codePointAt(0) ?? 0;
     if (ch === "\n" || supported.has(cp)) out += ch;
     else out += "?";
@@ -132,6 +142,7 @@ export async function generatePrescriptionPdf(data: PrescriptionPdfData): Promis
   const fonts: Fonts = { regular: await doc.embedFont(StandardFonts.Helvetica), bold: await doc.embedFont(StandardFonts.HelveticaBold) };
   const logo = await embed(doc, data.clinic.logo);
   const signature = await embed(doc, data.doctor.signature);
+  const padImage = await embed(doc, data.handwrittenPad);
 
   const contentW = A4.w - M.l - M.r;
   let page: PDFPage = doc.addPage([A4.w, A4.h]);
@@ -288,57 +299,67 @@ export async function generatePrescriptionPdf(data: PrescriptionPdfData): Promis
   }
 
   // medicines table
-  ensureSpace(60);
-  text("Rx", M.l, y - 16, 18, true, ACCENT);
-  y -= 26;
-  const cols = [
-    { key: "no", title: "#", w: 22 },
-    { key: "med", title: "Medicine", w: 170 },
-    { key: "dose", title: "Dosage", w: 70 },
-    { key: "freq", title: "Frequency", w: 85 },
-    { key: "dur", title: "Duration", w: 65 },
-  ];
-  const usedW = cols.reduce((s, c) => s + c.w, 0);
-  cols.push({ key: "ins", title: "Instructions", w: contentW - usedW });
-  const pad = 4;
-  const drawTableHead = () => {
-    ensureSpace(24);
-    page.drawRectangle({ x: M.l, y: y - 18, width: contentW, height: 18, color: TINT });
-    let x = M.l;
-    for (const c of cols) {
-      text(c.title, x + pad, y - 12.5, 8.5, true, MUTED);
-      x += c.w;
-    }
-    y -= 20;
-  };
-  drawTableHead();
-  data.medicines.forEach((m, i) => {
-    const cells: Record<string, string[]> = {
-      no: [String(i + 1)],
-      med: wrapText(clean([m.medicineName, m.strength].filter(Boolean).join(" "), fonts.bold), fonts.bold, 9.5, (cols[1]?.w ?? 100) - pad * 2),
-      dose: wrapText(clean(m.dosage, fonts.regular), fonts.regular, 9.5, (cols[2]?.w ?? 60) - pad * 2),
-      freq: wrapText(clean(m.frequency, fonts.regular), fonts.regular, 9.5, (cols[3]?.w ?? 60) - pad * 2),
-      dur: wrapText(clean(m.duration, fonts.regular), fonts.regular, 9.5, (cols[4]?.w ?? 60) - pad * 2),
-      ins: wrapText(clean(m.instructions ?? "", fonts.regular), fonts.regular, 9, (cols[5]?.w ?? 60) - pad * 2),
+  if (data.medicines.length > 0) {
+    ensureSpace(60);
+    text("Rx", M.l, y - 16, 18, true, ACCENT);
+    y -= 26;
+    const cols = [
+      { key: "no", title: "#", w: 22 },
+      { key: "med", title: "Medicine", w: 170 },
+      { key: "dose", title: "Dosage", w: 70 },
+      { key: "freq", title: "Frequency", w: 85 },
+      { key: "dur", title: "Duration", w: 65 },
+    ];
+    const usedW = cols.reduce((s, c) => s + c.w, 0);
+    cols.push({ key: "ins", title: "Instructions", w: contentW - usedW });
+    const pad = 4;
+    const drawTableHead = () => {
+      ensureSpace(24);
+      page.drawRectangle({ x: M.l, y: y - 18, width: contentW, height: 18, color: TINT });
+      let x = M.l;
+      for (const c of cols) {
+        text(c.title, x + pad, y - 12.5, 8.5, true, MUTED);
+        x += c.w;
+      }
+      y -= 20;
     };
-    const lineH = 12.5;
-    const rowH = Math.max(...Object.values(cells).map((c) => c.length), 1) * lineH + 8;
-    if (y - rowH < M.b) {
-      newPage();
-      drawTableHead();
-    }
-    let x = M.l;
-    for (const c of cols) {
-      const lines = cells[c.key] ?? [];
-      lines.forEach((ln, li) => {
-        text(ln, x + pad, y - 13 - li * lineH, c.key === "ins" ? 9 : 9.5, c.key === "med");
-      });
-      x += c.w;
-    }
-    y -= rowH;
-    rule(y);
-  });
-  y -= 12;
+    drawTableHead();
+    data.medicines.forEach((m, i) => {
+      const cells: Record<string, string[]> = {
+        no: [String(i + 1)],
+        med: wrapText(clean([m.medicineName, m.strength].filter(Boolean).join(" "), fonts.bold), fonts.bold, 9.5, (cols[1]?.w ?? 100) - pad * 2),
+        dose: wrapText(clean(m.dosage, fonts.regular), fonts.regular, 9.5, (cols[2]?.w ?? 60) - pad * 2),
+        freq: wrapText(clean(m.frequency, fonts.regular), fonts.regular, 9.5, (cols[3]?.w ?? 60) - pad * 2),
+        dur: wrapText(clean(m.duration, fonts.regular), fonts.regular, 9.5, (cols[4]?.w ?? 60) - pad * 2),
+        ins: wrapText(clean(m.instructions ?? "", fonts.regular), fonts.regular, 9, (cols[5]?.w ?? 60) - pad * 2),
+      };
+      const lineH = 12.5;
+      const rowH = Math.max(...Object.values(cells).map((c) => c.length), 1) * lineH + 8;
+      if (y - rowH < M.b) {
+        newPage();
+        drawTableHead();
+      }
+      let x = M.l;
+      for (const c of cols) {
+        const lines = cells[c.key] ?? [];
+        lines.forEach((ln, li) => {
+          text(ln, x + pad, y - 13 - li * lineH, c.key === "ins" ? 9 : 9.5, c.key === "med");
+        });
+        x += c.w;
+      }
+      y -= rowH;
+      rule(y);
+    });
+    y -= 12;
+  }
+
+  if (padImage) {
+    ensureSpace(220);
+    text("Handwritten Prescription Notes", M.l, y - 9, 9, true, ACCENT);
+    y -= 14;
+    page.drawImage(padImage, { x: M.l, y: y - 200, width: contentW, height: 200 });
+    y -= 210;
+  }
 
   if (data.investigationAdvised) {
     ensureSpace(32);

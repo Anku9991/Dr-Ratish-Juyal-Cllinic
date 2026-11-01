@@ -38,7 +38,7 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
     admin.from("consultations").select("*").eq("appointment_id", id).maybeSingle(),
     admin.from("consultations").select("id").eq("appointment_id", id).maybeSingle().then(async (r) => {
       if (!r.data) return { data: null };
-      return admin.from("prescriptions").select("id, status").eq("consultation_id", r.data.id as string).order("created_at", { ascending: false }).maybeSingle();
+      return admin.from("prescriptions").select("id, status").eq("consultation_id", r.data.id as string).order("created_at", { ascending: false }).limit(1).maybeSingle();
     }),
   ]);
   const c = consultation as ConsultationRow | null;
@@ -48,7 +48,7 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
     medicines = (data ?? []) as MedicineRow[];
   }
 
-  if (c?.status === "finalized" && prescription?.id) {
+  if (c?.status === "finalized" && prescription?.id && prescription.status !== "draft") {
     return (
       <div className="max-w-lg">
         <Alert tone="success" title="This consultation is already finalized">

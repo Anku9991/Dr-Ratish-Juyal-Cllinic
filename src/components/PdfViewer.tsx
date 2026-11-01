@@ -9,7 +9,7 @@ export function PdfViewer({ prescriptionId }: { prescriptionId: string }) {
         <LinkButton href={`${src}?download=1`} variant="primary">
           Download PDF
         </LinkButton>
-        <LinkButton href={src} variant="secondary">
+        <LinkButton href={src} variant="secondary" target="_blank" rel="noopener noreferrer">
           Open in new tab
         </LinkButton>
       </div>

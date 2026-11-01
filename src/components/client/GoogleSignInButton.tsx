@@ -23,10 +23,12 @@ export function GoogleSignInButton({ label = "Continue with Google" }: { label?:
   // Exchange Firebase user with Next.js server to create HTTP-only session cookie
   const exchangeUserWithServer = useCallback(
     async (user: User) => {
+      const idToken = await user.getIdToken();
       const res = await fetch("/api/auth/google-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          idToken,
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
