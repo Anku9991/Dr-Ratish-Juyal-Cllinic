@@ -57,7 +57,15 @@ function createDummySupabase(): SupabaseClient {
 
   return {
     from: () => createDummyBuilder(),
-    rpc: () => Promise.resolve(dummyResult),
+    rpc: (fn: string) => {
+      if (fn === "save_consultation_draft") {
+        return Promise.resolve({ data: { consultation_id: "c101-7b9a-4c3d-8f9b-0c2d3e4f5a6b", prescription_id: "rx101-7b9a-4c3d-8f9b-0c2d3e4f5a6b" }, error: null });
+      }
+      if (fn === "finalize_prescription") {
+        return Promise.resolve({ data: { id: "rx101-7b9a-4c3d-8f9b-0c2d3e4f5a6b", prescription_number: "RJ-RX-101" }, error: null });
+      }
+      return Promise.resolve(dummyResult);
+    },
     auth: {
       admin: {
         deleteUser: () => Promise.resolve(dummyResult),

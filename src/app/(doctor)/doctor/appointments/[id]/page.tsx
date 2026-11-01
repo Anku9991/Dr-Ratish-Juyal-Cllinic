@@ -9,6 +9,7 @@ import { ConsultationForm } from "@/components/client/ConsultationForm";
 import { PageHeader } from "@/components/ui";
 import { LinkButton, Alert } from "@/components/ui";
 import type { ConsultationRow, MedicineRow } from "@/types/db";
+import { reportsStore } from "@/lib/reports-store";
 
 export const metadata: Metadata = { title: "Consultation" };
 
@@ -61,6 +62,7 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
   }
 
   const history = await getPatientHistoryForDoctor(doctorId, appt.patients.id, c?.id);
+  const patientReports = reportsStore.listByPatient(appt.patients.id);
 
   return (
     <div>
@@ -69,6 +71,7 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
         appointmentId={id}
         appointmentStatus={appt.status}
         locked={false}
+        patientReports={patientReports}
         header={{
           name: patientNameOf(appt),
           uhid: appt.patients.patient_code,
@@ -80,6 +83,7 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
           time: hhmm(appt.start_time),
         }}
         initial={{
+          chiefComplaints: c?.chief_complaints ?? "",
           symptoms: c?.symptoms ?? "",
           examinationNotes: c?.examination_notes ?? "",
           diagnosis: c?.diagnosis ?? "",
@@ -87,7 +91,12 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
           pulse: c?.pulse ?? undefined,
           temperature: c?.temperature ?? undefined,
           spo2: c?.spo2 ?? undefined,
-          weight: c?.weight ?? undefined,
+          respiratoryRate: c?.respiratory_rate ?? undefined,
+          height: c?.height ? Number(c.height) : undefined,
+          weight: c?.weight ? Number(c.weight) : undefined,
+          bmi: c?.bmi ? Number(c.bmi) : undefined,
+          bloodSugar: c?.blood_sugar ? Number(c.blood_sugar) : undefined,
+          investigationAdvised: c?.investigation_advised ?? "",
           advice: c?.advice ?? "",
           followUpDate: c?.follow_up_date ?? "",
           medicines: medicines.length

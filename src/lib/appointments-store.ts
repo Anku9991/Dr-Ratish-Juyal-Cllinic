@@ -26,6 +26,7 @@ export interface ClinicAppointment {
   payment_status: "captured" | "pending_at_counter" | "pending_payment";
   receipt_number: string;
   reason: string | null;
+  cancel_reason?: string | null;
   cabin: string;
   created_at: string;
 }
@@ -203,6 +204,14 @@ class ClinicStore {
     appt.status = status;
     return true;
   }
+
+  public cancel(id: string, reason?: string): boolean {
+    const appt = this.getById(id);
+    if (!appt) return false;
+    appt.status = "cancelled";
+    appt.cancel_reason = reason || "Cancelled by patient";
+    return true;
+  }
 }
 
 // Global singleton instance
@@ -227,7 +236,7 @@ export function toApptWithDoctor(a: ClinicAppointment): ApptWithDoctor {
     reason: a.reason,
     notes: a.reason,
     payment_expires_at: null,
-    cancel_reason: null,
+    cancel_reason: a.cancel_reason || null,
     created_at: a.created_at,
     doctors: {
       speciality: a.speciality,

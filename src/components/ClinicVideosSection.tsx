@@ -42,13 +42,22 @@ export function ClinicVideosSection({ initialVideos }: { initialVideos: ClinicVi
         {selectedVideo ? (
           <div className="lg:col-span-7 rounded-2xl border border-line bg-white overflow-hidden shadow-2xs">
             <div className="relative aspect-video w-full bg-slate-900">
-              <iframe
-                src={`https://www.youtube-nocookie.com/embed/${selectedVideo.youtubeId}?autoplay=0&rel=0`}
-                title={selectedVideo.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="h-full w-full border-0"
-              />
+              {selectedVideo.youtubeId ? (
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${selectedVideo.youtubeId}?autoplay=0&rel=0`}
+                  title={selectedVideo.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="h-full w-full border-0"
+                />
+              ) : (
+                <video
+                  src={selectedVideo.videoUrl}
+                  controls
+                  className="h-full w-full object-contain"
+                  poster={selectedVideo.thumbnailUrl}
+                />
+              )}
             </div>
             <div className="p-5">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -97,7 +106,7 @@ export function ClinicVideosSection({ initialVideos }: { initialVideos: ClinicVi
                   <div className="relative w-28 shrink-0 aspect-video rounded-lg overflow-hidden bg-slate-900 border border-line">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`https://img.youtube.com/vi/${video.youtubeId}/mqdefault.jpg`}
+                      src={video.youtubeId ? `https://img.youtube.com/vi/${video.youtubeId}/mqdefault.jpg` : (video.thumbnailUrl || "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=400&q=80")}
                       alt={video.title}
                       className="h-full w-full object-cover"
                     />

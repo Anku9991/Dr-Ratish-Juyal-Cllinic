@@ -32,13 +32,20 @@ export interface PrescriptionPdfData {
   issuedOn: string; // already formatted in the clinic timezone
   status: "issued" | "amended" | "cancelled";
   statusNote?: string | null;
+  chiefComplaints?: string | null;
+  clinicalExamination?: string | null;
   diagnosis?: string | null;
+  investigationAdvised?: string | null;
   vitals?: {
     bloodPressure?: string | null;
     pulse?: number | null;
     temperature?: number | string | null;
     spo2?: number | null;
+    respiratoryRate?: number | string | null;
+    height?: number | string | null;
     weight?: number | string | null;
+    bmi?: number | string | null;
+    bloodSugar?: number | string | null;
   };
   medicines: Array<{
     medicineName: string;
@@ -247,16 +254,28 @@ export async function generatePrescriptionPdf(data: PrescriptionPdfData): Promis
   const v = data.vitals ?? {};
   const vitalParts = [
     v.bloodPressure ? `BP ${v.bloodPressure} mmHg` : null,
-    v.pulse ? `Pulse ${v.pulse}/min` : null,
+    v.pulse ? `Pulse ${v.pulse} bpm` : null,
     v.temperature ? `Temp ${v.temperature} F` : null,
     v.spo2 ? `SpO2 ${v.spo2}%` : null,
-    v.weight ? `Weight ${v.weight} kg` : null,
+    v.respiratoryRate ? `RR ${v.respiratoryRate}/min` : null,
+    v.height ? `Ht ${v.height} cm` : null,
+    v.weight ? `Wt ${v.weight} kg` : null,
+    v.bmi ? `BMI ${v.bmi} kg/m2` : null,
+    v.bloodSugar ? `Sugar ${v.bloodSugar} mg/dL` : null,
   ].filter(Boolean) as string[];
   if (vitalParts.length) {
     ensureSpace(30);
     text("Vitals", M.l, y - 9, 9, true, ACCENT);
     y -= 14;
-    drawWrapped(vitalParts.join("     "), M.l, contentW, 9.5);
+    drawWrapped(vitalParts.join("   |   "), M.l, contentW, 9.5);
+    y -= 6;
+  }
+
+  if (data.chiefComplaints) {
+    ensureSpace(32);
+    text("Chief Complaints", M.l, y - 9, 9, true, ACCENT);
+    y -= 14;
+    drawWrapped(data.chiefComplaints, M.l, contentW, 9.5);
     y -= 6;
   }
 
@@ -320,6 +339,14 @@ export async function generatePrescriptionPdf(data: PrescriptionPdfData): Promis
     rule(y);
   });
   y -= 12;
+
+  if (data.investigationAdvised) {
+    ensureSpace(32);
+    text("Investigation Advised", M.l, y - 9, 9, true, ACCENT);
+    y -= 14;
+    drawWrapped(data.investigationAdvised, M.l, contentW, 9.5);
+    y -= 6;
+  }
 
   if (data.advice) {
     ensureSpace(34);

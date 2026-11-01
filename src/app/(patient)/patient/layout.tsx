@@ -5,9 +5,10 @@ import { getPublicClinic, clinicDisplayName } from "@/lib/clinic";
 
 const NAV = [
   { href: "/patient", label: "Dashboard" },
-  { href: "/doctors", label: "Find a doctor" },
+  { href: "/patient/book", label: "Book Appointment" },
+  { href: "/patient/reports", label: "Medical Reports" },
   { href: "/patient/appointments", label: "My appointments" },
-  { href: "/patient/history", label: "Consultation history" },
+  { href: "/patient/history", label: "Medical history" },
   { href: "/patient/prescriptions", label: "Prescriptions" },
   { href: "/patient/profile", label: "My profile" },
 ];

@@ -74,6 +74,7 @@ export interface ConsultationRow {
   appointment_id: string;
   doctor_id: string;
   patient_id: string;
+  chief_complaints?: string | null;
   symptoms: string | null;
   examination_notes: string | null;
   diagnosis: string | null;
@@ -81,7 +82,12 @@ export interface ConsultationRow {
   pulse: number | null;
   temperature: number | string | null;
   spo2: number | null;
+  respiratory_rate?: number | null;
+  height?: number | string | null;
   weight: number | string | null;
+  bmi?: number | string | null;
+  blood_sugar?: number | string | null;
+  investigation_advised?: string | null;
   advice: string | null;
   follow_up_date: string | null;
   status: "draft" | "finalized";

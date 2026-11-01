@@ -103,6 +103,7 @@ export const medicineSchema = z.object({
 });
 
 export const consultationSchema = z.object({
+  chiefComplaints: optionalText(4000),
   symptoms: optionalText(4000),
   examinationNotes: optionalText(4000),
   diagnosis: optionalText(2000),
@@ -116,7 +117,12 @@ export const consultationSchema = z.object({
   pulse: optionalNumber(20, 300, true),
   temperature: optionalNumber(90, 110),
   spo2: optionalNumber(50, 100, true),
+  respiratoryRate: optionalNumber(5, 100, true),
+  height: optionalNumber(20, 300),
   weight: optionalNumber(1, 500),
+  bmi: optionalNumber(5, 100),
+  bloodSugar: optionalNumber(20, 1000),
+  investigationAdvised: optionalText(4000),
   advice: optionalText(4000),
   followUpDate: dateString.optional().nullable().or(z.literal("").transform(() => null)),
   medicines: z.array(medicineSchema).max(30, "At most 30 medicines per prescription").default([]),
