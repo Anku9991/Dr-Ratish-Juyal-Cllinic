@@ -71,6 +71,8 @@ declare module "firebase/auth" {
   }
   export function getAuth(app?: unknown): Auth;
   export function signInWithPopup(auth: Auth, provider: AuthProvider): Promise<UserCredential>;
+  export function signInWithRedirect(auth: Auth, provider: AuthProvider): Promise<void>;
+  export function getRedirectResult(auth: Auth): Promise<UserCredential | null>;
   export function signOut(auth: Auth): Promise<void>;
 }
 

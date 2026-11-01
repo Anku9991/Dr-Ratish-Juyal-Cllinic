@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  type User,
+} from "firebase/auth";
 import { auth } from "@/lib/firebase/config";
 import { Alert } from "../ui";
 
@@ -12,19 +18,11 @@ export function GoogleSignInButton({ label = "Continue with Google" }: { label?:
   const next = params.get("next") ?? undefined;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRedirectOption, setShowRedirectOption] = useState(false);
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // Exchange with server to create verified HTTP-only session cookie & resolve role
+  // Exchange Firebase user with Next.js server to create HTTP-only session cookie
+  const exchangeUserWithServer = useCallback(
+    async (user: User) => {
       const res = await fetch("/api/auth/google-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -39,30 +37,107 @@ export function GoogleSignInButton({ label = "Continue with Google" }: { label?:
 
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        throw new Error(data.message || "Failed to sign in with Google");
+        throw new Error(data.message || "Failed to establish server session");
       }
 
-      // Redirect to resolved role dashboard (doctor / patient / admin)
       router.replace(data.redirect || "/patient");
       router.refresh();
+    },
+    [next, router]
+  );
+
+  // Check if returning from a redirect sign-in
+  useEffect(() => {
+    let mounted = true;
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (!mounted || !result || !result.user) return;
+        setLoading(true);
+        await exchangeUserWithServer(result.user);
+      })
+      .catch((err: unknown) => {
+        if (!mounted) return;
+        console.error("Redirect sign-in error:", err);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [exchangeUserWithServer]);
+
+  const handleGoogleSignIn = async (useRedirect = false) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      if (useRedirect) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
+      const result = await signInWithPopup(auth, provider);
+      if (result && result.user) {
+        await exchangeUserWithServer(result.user);
+      }
     } catch (err: unknown) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message.includes("auth/popup-closed-by-user")
-            ? "Sign-in cancelled. Please try again."
-            : err.message
-          : "Failed to sign in with Google";
-      setError(errorMsg);
       setLoading(false);
+      const msg = err instanceof Error ? err.message : String(err);
+
+      if (msg.includes("auth/popup-closed-by-user")) {
+        setError("Sign-in popup band kar diya gaya tha. Dobara try karein.");
+        return;
+      }
+
+      if (msg.includes("auth/internal-error") || msg.includes("auth/configuration-not-found")) {
+        setShowRedirectOption(true);
+        setError(
+          "Firebase Console Setup: Firebase Console me Authentication > Sign-in method me jakar 'Google' ko Enable karein aur Support Email select karke Save karein. Agar already enabled hai, to neeche Redirect button try karein."
+        );
+        return;
+      }
+
+      if (msg.includes("auth/unauthorized-domain")) {
+        setError(
+          "Unauthorized Domain: Firebase Console > Authentication > Settings > Authorized domains me apna domain add karein."
+        );
+        return;
+      }
+
+      if (msg.includes("auth/operation-not-allowed")) {
+        setError(
+          "Google provider disabled hai. Firebase Console > Authentication > Sign-in method > Google me jakar Enable karein."
+        );
+        return;
+      }
+
+      setShowRedirectOption(true);
+      setError(msg || "Failed to sign in with Google.");
     }
   };
 
   return (
     <div className="space-y-3">
-      {error ? <Alert tone="danger">{error}</Alert> : null}
+      {error ? (
+        <div className="space-y-2">
+          <Alert tone="danger">{error}</Alert>
+          {showRedirectOption ? (
+            <button
+              type="button"
+              onClick={() => handleGoogleSignIn(true)}
+              className="text-xs text-brand-700 underline font-medium hover:text-brand-900 block"
+            >
+              Pop-up kaam nahi kar raha? Yahan click karke Full-Page Redirect se sign in karein →
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       <button
         type="button"
-        onClick={handleGoogleSignIn}
+        onClick={() => handleGoogleSignIn(false)}
         disabled={loading}
         className="w-full flex items-center justify-center gap-3 rounded-xl border border-line bg-white hover:bg-slate-50 text-slate-800 font-semibold py-2.5 px-4 shadow-2xs hover:shadow-xs transition-all disabled:opacity-60 cursor-pointer"
       >
