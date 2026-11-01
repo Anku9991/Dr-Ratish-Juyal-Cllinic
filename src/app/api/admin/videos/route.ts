@@ -21,15 +21,7 @@ const createVideoSchema = z.object({
   isFeatured: z.boolean().optional(),
 });
 
-function extractYoutubeId(url: string): string | undefined {
-  if (!url) return undefined;
-  // If already an 11-char ID
-  if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
-
-  // youtube.com/watch?v=... or youtu.be/... or embed/...
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-  return match ? match[1] : undefined;
-}
+import { extractYoutubeId } from "@/lib/video-helpers";
 
 export const GET = route({ roles: ["admin"] }, async () => {
   const videos = videoStore.list({ includeDrafts: true });
@@ -44,7 +36,7 @@ export const POST = route(
   },
   async ({ body, user }) => {
     const id = `vid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const youtubeId = extractYoutubeId(body.videoUrl);
+    const youtubeId = extractYoutubeId(body.videoUrl) || undefined;
 
     const newVideo: ClinicVideo = {
       id,

@@ -8,3 +8,5 @@ next-env.d.ts
 playwright-report
 test-results
 .vercel
+public/uploads/videos/*
+!public/uploads/videos/.gitkeep

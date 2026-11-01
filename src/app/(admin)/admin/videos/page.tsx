@@ -15,9 +15,11 @@ import {
   Edit2,
   X,
   FileVideo,
+  ExternalLink,
 } from "lucide-react";
 import type { ClinicVideo, VideoCategory } from "@/types/videos";
 import { VIDEO_CATEGORIES } from "@/types/videos";
+import { resolveVideoSource } from "@/lib/video-helpers";
 
 export default function AdminVideosPage() {
   const [videos, setVideos] = useState<ClinicVideo[]>([]);
@@ -128,8 +130,36 @@ export default function AdminVideosPage() {
         alert("Please select a video file to upload.");
         return;
       }
+
       if (selectedFile) {
-        finalVideoUrl = URL.createObjectURL(selectedFile);
+        setUploading(true);
+        setUploadProgress(20);
+
+        try {
+          const uploadData = new FormData();
+          uploadData.append("file", selectedFile);
+          setUploadProgress(45);
+
+          const uploadRes = await fetch("/api/admin/videos/upload", {
+            method: "POST",
+            body: uploadData,
+          });
+
+          setUploadProgress(75);
+          const uploadJson = await uploadRes.json();
+
+          if (!uploadRes.ok || !uploadJson.ok || !uploadJson.videoUrl) {
+            setUploading(false);
+            setAlertMsg({ type: "error", text: uploadJson.message || "Failed to upload video to server." });
+            return;
+          }
+
+          finalVideoUrl = uploadJson.videoUrl;
+        } catch {
+          setUploading(false);
+          setAlertMsg({ type: "error", text: "Network error during video file upload." });
+          return;
+        }
       }
     }
 
@@ -139,11 +169,9 @@ export default function AdminVideosPage() {
     }
 
     setUploading(true);
-    setUploadProgress(40);
+    setUploadProgress(85);
 
     try {
-      setTimeout(() => setUploadProgress(80), 200);
-
       const payload = {
         title,
         description,
@@ -171,6 +199,7 @@ export default function AdminVideosPage() {
       }
 
       const json = await res.json();
+      setUploadProgress(100);
       setUploading(false);
 
       if (json.ok) {
@@ -377,9 +406,8 @@ export default function AdminVideosPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredVideos.map((v) => {
             const isPub = v.status === "published";
-            const thumb = v.youtubeId
-              ? `https://img.youtube.com/vi/${v.youtubeId}/mqdefault.jpg`
-              : v.thumbnailUrl || "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=400&q=80";
+            const resolved = resolveVideoSource(v.videoUrl, v.youtubeId, v.thumbnailUrl);
+            const thumb = resolved.thumbnailUrl;
 
             return (
               <div
@@ -505,21 +533,45 @@ export default function AdminVideosPage() {
             </div>
 
             <div className="aspect-video w-full bg-black">
-              {playingVideo.youtubeId ? (
-                <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${playingVideo.youtubeId}?autoplay=1`}
-                  title={playingVideo.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="h-full w-full border-0"
-                />
-              ) : (
-                <video src={playingVideo.videoUrl} controls autoPlay className="h-full w-full object-contain" />
-              )}
+              {(() => {
+                const source = resolveVideoSource(playingVideo.videoUrl, playingVideo.youtubeId);
+                if (source.type === "youtube" || source.type === "vimeo") {
+                  return (
+                    <iframe
+                      src={source.embedUrl}
+                      title={playingVideo.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="h-full w-full border-0"
+                    />
+                  );
+                }
+                return (
+                  <video
+                    src={source.embedUrl}
+                    controls
+                    autoPlay
+                    playsInline
+                    preload="metadata"
+                    className="h-full w-full object-contain"
+                  />
+                );
+              })()}
             </div>
 
             <div className="p-5 text-xs text-slate-700 bg-white leading-relaxed">
-              <p className="font-bold text-sm text-ink mb-1">About this video:</p>
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <p className="font-bold text-sm text-ink">About this video:</p>
+                <a
+                  href={playingVideo.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-600 hover:text-brand-800 hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Direct Link
+                </a>
+              </div>
               <p>{playingVideo.description}</p>
             </div>
           </div>

@@ -24,12 +24,7 @@ const updateVideoSchema = z.object({
   isFeatured: z.boolean().optional(),
 });
 
-function extractYoutubeId(url: string): string | undefined {
-  if (!url) return undefined;
-  if (/^[a-zA-Z0-9_-]{11}$/.test(url.trim())) return url.trim();
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-  return match ? match[1] : undefined;
-}
+import { extractYoutubeId } from "@/lib/video-helpers";
 
 export const PUT = route(
   {
@@ -42,7 +37,7 @@ export const PUT = route(
     const existing = videoStore.getById(id);
     if (!existing) throw new HttpError(404, "not_found", "Video not found.");
 
-    const youtubeId = body.videoUrl ? extractYoutubeId(body.videoUrl) : existing.youtubeId;
+    const youtubeId = body.videoUrl ? (extractYoutubeId(body.videoUrl) || undefined) : existing.youtubeId;
 
     const updated = {
       ...existing,

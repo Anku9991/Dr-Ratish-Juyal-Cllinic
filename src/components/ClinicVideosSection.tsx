@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Play, Sparkles, X, Clock, User } from "lucide-react";
 import type { ClinicVideo } from "@/types/videos";
+import { resolveVideoSource } from "@/lib/video-helpers";
 
 export function ClinicVideosSection({ initialVideos }: { initialVideos: ClinicVideo[] }) {
   const [activeCategory, setActiveCategory] = useState<string>("All");
@@ -15,6 +16,10 @@ export function ClinicVideosSection({ initialVideos }: { initialVideos: ClinicVi
     activeCategory === "All"
       ? initialVideos
       : initialVideos.filter((v) => v.category === activeCategory);
+
+  const mainSource = selectedVideo
+    ? resolveVideoSource(selectedVideo.videoUrl, selectedVideo.youtubeId, selectedVideo.thumbnailUrl)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -39,12 +44,12 @@ export function ClinicVideosSection({ initialVideos }: { initialVideos: ClinicVi
       {/* Featured Video Player & Grid */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Main Video Highlight Player */}
-        {selectedVideo ? (
+        {selectedVideo && mainSource ? (
           <div className="lg:col-span-7 rounded-2xl border border-line bg-white overflow-hidden shadow-2xs">
             <div className="relative aspect-video w-full bg-slate-900">
-              {selectedVideo.youtubeId ? (
+              {mainSource.type === "youtube" || mainSource.type === "vimeo" ? (
                 <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${selectedVideo.youtubeId}?autoplay=0&rel=0`}
+                  src={mainSource.embedUrl}
                   title={selectedVideo.title}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -52,10 +57,12 @@ export function ClinicVideosSection({ initialVideos }: { initialVideos: ClinicVi
                 />
               ) : (
                 <video
-                  src={selectedVideo.videoUrl}
+                  src={mainSource.embedUrl}
                   controls
+                  playsInline
+                  preload="metadata"
                   className="h-full w-full object-contain"
-                  poster={selectedVideo.thumbnailUrl}
+                  poster={mainSource.thumbnailUrl}
                 />
               )}
             </div>
@@ -106,7 +113,7 @@ export function ClinicVideosSection({ initialVideos }: { initialVideos: ClinicVi
                   <div className="relative w-28 shrink-0 aspect-video rounded-lg overflow-hidden bg-slate-900 border border-line">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={video.youtubeId ? `https://img.youtube.com/vi/${video.youtubeId}/mqdefault.jpg` : (video.thumbnailUrl || "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=400&q=80")}
+                      src={resolveVideoSource(video.videoUrl, video.youtubeId, video.thumbnailUrl).thumbnailUrl}
                       alt={video.title}
                       className="h-full w-full object-cover"
                     />
@@ -149,13 +156,30 @@ export function ClinicVideosSection({ initialVideos }: { initialVideos: ClinicVi
               <X className="h-6 w-6" />
             </button>
             <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
-              <iframe
-                src={`https://www.youtube-nocookie.com/embed/${selectedVideo.youtubeId}?autoplay=1`}
-                title={selectedVideo.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="h-full w-full border-0"
-              />
+              {(() => {
+                const modalSource = resolveVideoSource(selectedVideo.videoUrl, selectedVideo.youtubeId, selectedVideo.thumbnailUrl);
+                if (modalSource.type === "youtube" || modalSource.type === "vimeo") {
+                  return (
+                    <iframe
+                      src={modalSource.embedUrl}
+                      title={selectedVideo.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="h-full w-full border-0"
+                    />
+                  );
+                }
+                return (
+                  <video
+                    src={modalSource.embedUrl}
+                    controls
+                    autoPlay
+                    playsInline
+                    preload="metadata"
+                    className="h-full w-full object-contain"
+                  />
+                );
+              })()}
             </div>
           </div>
         </div>
